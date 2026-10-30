@@ -12,7 +12,23 @@
   <a href="https://github.com/fly-YaoPro/taobao-consumption-journal/archive/refs/heads/main.zip">下载完整包</a>
 </p>
 
-> 这是给 Agent 使用的一套指令、参考图和本地检查工具，不是安装即运行的网站或现成爬虫。下方图片是 **AI 生成的虚构设计示意**，其中的商品、订单和人物设定不是真实用户数据。
+> 这套 Agent Skill 现在包含 **可运行的离线拼贴框架**：回顾、紧凑订单日历、自动整理后可编辑的计划。不自带账号订单或现成爬虫。下方参考图仍是 **AI 生成的虚构设计示意**，不是实际订单或运行截图。
+
+## 已经爬完，不用重来
+
+```text
+使用最新版 Skill，保留已经采集的订单、真实商品图和手动计划，不要重新抓取。
+用包内框架重做产物：总结写具体物件与消费反差，别把读取范围当总结；
+日历打开有订单月份；计划先根据数据生成可编辑建议，不要空页面。
+```
+
+见 [页面框架说明](references/implementation.md)，Agent 完善 `story.json` 的内容后运行：
+
+```bash
+python scripts/build_journal.py --source "已有数据副本" --output "新版消费手账" --skin collage
+```
+
+Python 3.9+ 标准库，无 npm 安装。原项目不覆盖，图片仍是真实商品；三列有层级，图片大小不同，导航和翻页不悬浮压内容。日历有真实缩略图/短标题与当天详情，计划首次进入已显示有来源的建议。旧网页的手动计划先导出，再在新版合并。
 
 ## 不只是一张消费总额
 
@@ -108,8 +124,9 @@ SKILL.md          Agent 入口
 agents/           可选的客户端展示信息
 references/       采集、金额口径、内容、视觉与验收规则
 assets/cases/     虚构视觉参考图
+assets/starter/   可运行的离线拼贴页面框架
 assets/provenance.json  参考图说明与校验值
-scripts/          本地结构检查与合成数据测试
+scripts/          构建器、结构检查与合成数据测试
 ```
 
 ## 隐私与能力边界

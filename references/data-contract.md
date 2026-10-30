@@ -30,6 +30,8 @@
 
 ## 离线与计划
 
+新版页面另用 `journal-data.js` 作为运行时展示数据，构建器生成，原始 `orders.json` 不改写；完整内容准备、`story.plans`、发现和图片选择字段见 [页面框架说明](implementation.md)。`orders.js` 保留同源规范数据。品类筛选读取父订单可选 `category`；旧数据无分类时 Agent 先按商品真实信息整理到副本，保留不确定项，不按任意关键词替用户定职业。既有手动计划先从旧网页导出，再适配/合并，不假设跨路径 localStorage 自动共享。
+
 新建item增加图片`origin`：`platform`或`user_provided`。前者保存对应平台`source_url`，核对商品和规格；后者保存`provided_reference`（授权实拍文件说明）。缺图仍如实标记，不用AI/卡通/相似商品替代。装饰单独放decorations/，不能作为item.image_path或主题证据image_paths。旧数据缺来源标记时补核验，不能只凭路径通过就认定图片真实。
 
 日历按下单北京时间索引，搜索/品类筛选遍历全部已收录订单；无订单、未读取、失败不混同。数量要区分父订单与商品件数，不由有限资料外推总消费。

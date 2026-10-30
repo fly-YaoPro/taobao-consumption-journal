@@ -21,3 +21,5 @@ orders.js
 images/
 exports/
 progress.json
+journal-data.js
+*计划备份*.json
