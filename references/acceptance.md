@@ -16,7 +16,7 @@
 
 ## 功能
 
-新版先按 [页面框架说明](implementation.md) 构建。额外跑 `node --test scripts/test_framework.cjs` 与 `python -B scripts/test_build_journal.py`，不能将脚本通过当视觉通过。
+页面制作按 [页面框架说明](implementation.md) 构建。额外跑 `node --test scripts/test_framework.cjs` 与 `python -B scripts/test_build_journal.py`，不能将脚本通过当视觉通过。
 
 - 首次进入计划已有基于订单生成的小行动，不是空新增表单，也不是自动购物清单。
 - 左总结绑定 `story.overview.text`，不是范围/失败说明；商品组合有大小层级。日历首选有记录月份、显示真实图或短标题，导航、翻页、分享不互相覆盖。
