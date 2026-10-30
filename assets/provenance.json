@@ -1,0 +1,13 @@
+{
+  "type": "synthetic-ui-style-reference",
+  "created_with": "OpenAI image_gen built-in tool",
+  "synthetic": true,
+  "persona": "林果，虚构的陶艺、烘焙与收纳爱好者；商品、消费片段和日期均为演示",
+  "purpose": "仅供观察拼贴构图、配色、纸层和层级，不是实际订单、商品证据或功能实测截图",
+  "runtime_rule": "实际商品图必须来自真实订单、核对过的对应商品页或用户授权实拍；禁止生成替代商品",
+  "images": [
+    {"path": "cases/collage-overview.png", "sha256": "671daf0d7883c16dfd159abcdaa14512389504a0c4eb5a624d47ba0ebee39d59"},
+    {"path": "cases/collage-holiday.png", "sha256": "14021850d3624f8c989c1bf2810bcbcf94d06b926ff1dedd2a869232afbe6c49"},
+    {"path": "cases/collage-interest.png", "sha256": "b15154d6771f265b93cf468361fa3b022a8fef9b4e3376e1b52f9b4163aed2e0"}
+  ]
+}
