@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>手账</title><link rel="stylesheet" href="styles.css">
+  <title>手账</title><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="scrapbook.css">
 </head>
 <body>
   <header class="site-header">
@@ -31,7 +31,12 @@
     </section>
     <details class="coverage-panel"><summary>查看数据范围与缺口</summary><div id="coverage"></div></details>
   </main>
+  <nav class="scrap-dock" aria-label="手账三个板块">
+    <button data-view="review" aria-label="回看"><span class="dock-art dock-photos" aria-hidden="true"><i></i><i></i><img id="dock-preview" alt=""></span><span>回看</span></button>
+    <button data-view="calendar" aria-label="订单日历"><span class="dock-art dock-calendar" aria-hidden="true"><i></i><b>31</b></span><span>订单日历</span></button>
+    <button data-view="plans" aria-label="计划"><span class="dock-art dock-folder" aria-hidden="true"><i></i><i></i><b>✓</b></span><span>计划</span></button>
+  </nav>
   <dialog id="modal"><div class="modal-top"><h2 id="modal-title"></h2><button id="close-modal" aria-label="关闭弹窗">×</button></div><div id="modal-content"></div></dialog>
   <p id="notice" role="status" hidden></p>
-  <script src="journal-data.js"></script><script src="core.js"></script><script src="app.js"></script>
+  <script src="journal-data.js"></script><script src="core.js"></script><script src="scrapbook.js"></script><script src="app.js"></script>
 </body></html>

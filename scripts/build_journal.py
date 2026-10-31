@@ -109,6 +109,38 @@ def prepare(root, skin):
         raise ValueError("淘宝总览需要有来源的发现，不能只放空便签")
     for m in story.get("milestones", []):
         refs(m)
+    # Life chapters and cross-year threads are authored by the agent, never inferred
+    # from a product category by this renderer. Every visual stays tied to sources.
+    stages, threads = story.get("stages", []), story.get("threads", [])
+    contexts = meta.get("confirmed_context", [])
+    context_ids = {c.get("id") for c in contexts if c.get("id") and c.get("text") and c.get("source") == "user_confirmed"}
+    for field, sections, maximum in (("stages", stages, 6), ("threads", threads, 4)):
+        if not isinstance(sections, list) or len(sections) > maximum:
+            raise ValueError(field + " 需为列表，且不超过 " + str(maximum) + " 项")
+        seen = set()
+        for section in sections:
+            ids = refs(section)
+            if not section.get("id") or section["id"] in seen:
+                raise ValueError(field + " ID缺失或重复")
+            seen.add(section["id"])
+            if not section.get("title") or len(section["title"]) > 28 or not section.get("text") or len(section["text"]) > 240:
+                raise ValueError(field + " 需短标题与240字以内的具体叙事")
+            if len(section.get("label", "")) > 16 or len(section.get("notes", [])) > 2:
+                raise ValueError("阶段标签最多16字，侧笺最多2张")
+            lines = section.get("title_lines", [])
+            if lines and (not isinstance(lines, list) or not 2 <= len(lines) <= 3 or any(not isinstance(x, str) or not x.strip() for x in lines) or "".join(lines) != section["title"]):
+                raise ValueError("title_lines 须为原题目的2—3段自然断句，不改写标题")
+            if section.get("detail_theme_id") and section["detail_theme_id"] not in theme_ids:
+                raise ValueError("阶段关联了不存在的主题")
+            if any(c not in context_ids for c in section.get("context_ids", [])):
+                raise ValueError("生活背景须在 confirmed_context 中由用户确认")
+            dates = sorted(by_id[i]["date"] for i in ids)
+            section["range"] = dates[0] + " — " + dates[-1]
+            section["period_label"] = dates[0][:4] if dates[0][:4] == dates[-1][:4] else dates[0][:4] + "—" + dates[-1][:4]
+            for note in section.get("notes", []):
+                if not note.get("title") or not note.get("text") or len(note["text"]) > 100 or not set(refs(note)).issubset(ids):
+                    raise ValueError("阶段便笺需短文字及该阶段内的来源")
+    stages.sort(key=lambda s: s["range"])
     plans = story.get("plans", [])
     if not plans:
         raise ValueError("story.plans 为空：先由 Agent 从真实记录生成3—6条建议，再构建；不交付空计划页")
@@ -119,7 +151,7 @@ def prepare(root, skin):
             raise ValueError("计划需唯一ID、标题、月份、依据 reason 和来源ID")
         plan_ids.add(p["id"])
     # Display image choices must actually belong to cited records, not a global unrelated gallery.
-    for section in [overview] + themes:
+    for section in [overview] + themes + stages + threads:
         allowed = {im["path"]: (r, im) for i in section["source_ids"] for r in [by_id[i]] for im in r["images"]}
         choices = section.get("image_paths", [])
         if not choices:
@@ -156,8 +188,15 @@ def build(source, output, skin, template=None):
     data = prepare(source, skin)  # validate before writing anything
     template = Path(template) if template else Path(__file__).resolve().parents[1] / "assets" / "starter"
     output.mkdir(parents=True, exist_ok=True)
-    for filename in ("index.html", "styles.css", "app.js", "core.js"):
+    for filename in ("index.html", "styles.css", "app.js", "core.js", "scrapbook.css", "scrapbook.js"):
         shutil.copyfile(template / filename, output / filename)
+    # Only template-owned fonts and their notices. Never copy source caches or profiles.
+    font_dir = template / "fonts"
+    if font_dir.exists():
+        for font in font_dir.iterdir():
+            if font.is_symlink() or not font.is_file() or font.suffix.lower() not in {".woff2", ".txt", ".md"}:
+                raise ValueError("模板 fonts/ 仅允许本地字体与许可说明")
+        shutil.copytree(font_dir, output / "fonts")
     js = "window.JOURNAL_DATA = " + json.dumps(data, ensure_ascii=False).replace("<", "\\u003c") + ";\n"
     (output / "journal-data.js").write_text(js, encoding="utf-8")
     paths = {im[k] for r in data["records"] for im in r["images"] for k in ("path", "large")}
@@ -175,7 +214,7 @@ def build(source, output, skin, template=None):
     canonical_js = f"window.{global_name} = " + json.dumps(canonical, ensure_ascii=False).replace("<", "\\u003c") + ";\n"
     (output / bundle).write_text(canonical_js, encoding="utf-8")
     (output / "exports").mkdir(exist_ok=True)
-    return {"output": str(output), "records": len(data["records"]), "themes": len(data["story"]["themes"]), "plans": len(data["story"]["plans"]), "images": len(paths), "skin": skin}
+    return {"output": str(output), "records": len(data["records"]), "themes": len(data["story"]["themes"]), "stages": len(data["story"].get("stages", [])), "plans": len(data["story"]["plans"]), "images": len(paths), "skin": skin}
 
 
 if __name__ == "__main__":

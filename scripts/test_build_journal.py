@@ -49,6 +49,14 @@ class BuilderTests(unittest.TestCase):
         build(self.root, Path(self.temp.name) / "new", "paper")
         self.assertEqual((self.root / "story.json").read_bytes(), before)
 
+    def test_scrapbook_runtime_and_offline_fonts_are_bundled(self):
+        fixture(self.root, "taobao")
+        out = Path(self.temp.name) / "scrapbook"
+        build(self.root, out, "collage")
+        for name in ("scrapbook.css", "scrapbook.js", "fonts/display-bobo.woff2", "fonts/body.woff2", "fonts/note.woff2", "fonts/Bobohei-OFL.txt", "fonts/Noto-OFL.txt", "fonts/WenKai-OFL.txt"):
+            self.assertTrue((out / name).is_file(), name)
+        self.assertIn("scrapbook.js", (out / "index.html").read_text(encoding="utf-8"))
+
     def test_empty_plan_blocked(self):
         self.mutate(lambda s: s.update(plans=[]))
         with self.assertRaises(ValueError):
@@ -92,6 +100,46 @@ class BuilderTests(unittest.TestCase):
         out = Path(self.temp.name) / "escaped"
         build(self.root, out, "paper")
         self.assertNotIn("</script>", (out / "journal-data.js").read_text(encoding="utf-8"))
+
+    def stage(self, **changes):
+        return dict(id="s1", label="一个阶段", title="具体的变化", text="来自合成订单的阶段说明。", source_ids=["demo-1"], **changes)
+
+    def test_stage_dates_are_derived_and_not_handwritten(self):
+        self.mutate(lambda s: s.update(stages=[self.stage(range="1900-01-01")]))
+        data = prepare(self.root, "paper")
+        self.assertEqual(data["story"]["stages"][0]["range"], "2025-05-19 — 2025-05-19")
+        self.assertEqual(data["story"]["stages"][0]["period_label"], "2025")
+
+    def test_unconfirmed_life_context_is_blocked(self):
+        self.mutate(lambda s: s.update(stages=[self.stage(context_ids=["imagined-graduation"])]))
+        with self.assertRaisesRegex(ValueError, "生活背景"):
+            prepare(self.root, "paper")
+
+    def test_confirmed_context_and_natural_title_lines(self):
+        meta = json.loads((self.root / "project_meta.json").read_text(encoding="utf-8"))
+        meta["confirmed_context"] = [{"id":"test-background", "text":"虚构测试确认的背景。", "source":"user_confirmed"}]
+        write(self.root, "project_meta.json", meta)
+        self.mutate(lambda s: s.update(stages=[self.stage(context_ids=["test-background"], title_lines=["具体的", "变化"])]))
+        self.assertEqual(len(prepare(self.root, "paper")["story"]["stages"]), 1)
+
+    def test_stage_cannot_point_at_unknown_theme(self):
+        self.mutate(lambda s: s.update(stages=[self.stage(detail_theme_id="missing")]))
+        with self.assertRaisesRegex(ValueError, "不存在的主题"):
+            prepare(self.root, "paper")
+
+    def test_fake_title_line_or_overlong_note_is_blocked(self):
+        self.mutate(lambda s: s.update(stages=[self.stage(title_lines=["另一个", "标题"])]))
+        with self.assertRaisesRegex(ValueError, "title_lines"):
+            prepare(self.root, "paper")
+        self.mutate(lambda s: s.update(stages=[self.stage(notes=[{"title":"便签", "text":"字"*101, "source_ids":["demo-1"]}])]))
+        with self.assertRaisesRegex(ValueError, "阶段便笺"):
+            prepare(self.root, "paper")
+
+    def test_stage_and_thread_images_are_checked_against_sources(self):
+        for field in ("stages", "threads"):
+            self.mutate(lambda s: s.update({"stages":[], "threads":[], field:[self.stage(image_paths=["images/unrelated.jpg"])]}))
+            with self.assertRaisesRegex(ValueError, "页面图片与来源ID不对应"):
+                prepare(self.root, "paper")
 
 
 if __name__ == "__main__":

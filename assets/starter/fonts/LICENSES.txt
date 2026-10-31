@@ -1,0 +1,20 @@
+Bundled typography for the offline scrapbook (format conversion only).
+
+display-bobo.woff2: Kingnam Bobohei Bold (荆南波波黑), Kingnam Type Foundry.
+Source: https://github.com/maoken-fonts/KNBobohei
+License: Bobohei-OFL.txt (SIL Open Font License 1.1).
+
+body.woff2: Noto Sans SC variable, Google / Adobe contributors.
+Source: https://github.com/google/fonts/tree/main/ofl/notosanssc
+License: Noto-OFL.txt (SIL Open Font License 1.1).
+
+note.woff2: LXGW WenKai Regular.
+Source: https://github.com/lxgw/LxgwWenKai
+License: WenKai-OFL.txt (SIL Open Font License 1.1).
+
+Preserve these notices when copying the offline website. These fonts are not
+licensed by the enclosing repository's code terms; their included OFL applies.
+Do not sell font files alone. No font is fetched from a CDN at runtime.
+
+ZCOOL-OFL.txt is retained from an earlier local font comparison; that font is not
+the active display font in this framework.
