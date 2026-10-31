@@ -1,9 +1,9 @@
 {
   "type": "rendered-ui-showcase-with-synthetic-data",
   "created_date": "2026-10-31",
-  "ui": "Actual browser screenshots of the bundled life-stages-v4 framework; not AI-generated interface mockups.",
+  "ui": "Actual browser screenshots and an actual canvas PNG export of the bundled editorial-media-v5 framework; not AI-generated interface mockups.",
   "synthetic_data": true,
-  "data_description": "Fictional shopping preferences and 15 invented orders spanning 2016–2026, authored solely for README illustration. No actual account, order export, purchase amount or private photograph is used.",
+  "data_description": "Fictional shopping preferences and 17 invented orders spanning 2016–2026, authored solely for README illustration. Synthetic service/source cards demonstrate non-photographic media. No actual account, order export, purchase amount or private photograph is used.",
   "product_images": {
     "synthetic": true,
     "created_with": "OpenAI image_gen built-in tool",
@@ -17,11 +17,12 @@
     ]
   },
   "runtime_rule": "Real journal projects must use images from the actual order, the verified matching product page/specification, or authorized photographs of that same product. Never substitute generated or similar products for order evidence.",
-  "capture_note": "Homepage and folder-stack images are viewport captures; calendar and plans are full-page captures. No screenshot is a claim of successful real-account collection or of an end-to-end Doubao run.",
+  "capture_note": "Homepage and folder-stack images are viewport captures; calendar and plans are full-page captures; share.png is a downloaded 1080x1440 canvas export. No image is a claim of successful real-account collection or of an end-to-end Doubao run.",
   "images": [
-    {"path": "home.jpg", "role": "Homepage collage and short recap", "sha256": "45e35ebf4732db69a424a22f67e42293a224eb5e4373626e04c4ad9ba680d86a"},
-    {"path": "folder-stack.jpg", "role": "Life-stage folders overlapping during scroll", "sha256": "9f9978cf1cd7a6911f3f393a20a46d81188caacc977df6cd383804a52d1dd3ac"},
-    {"path": "calendar.jpg", "role": "Compact populated calendar with selected-day details", "sha256": "8be337796ec3fe4d60e4c848fba1e746b8e1f903dd3d485a4b4a9ba332a81ed4"},
-    {"path": "plans.jpg", "role": "Source-linked suggested plans with editable controls", "sha256": "a21aa8cec03faad7ad1406f53b7d701b5f6f2293f848df2e01fc2e8fdfb13185"}
+    {"path": "home.jpg", "role": "Mixed-media homepage collage and short recap", "sha256": "4e31df3624ef1d91a9c8e643544baaabf7b95b73f7315b55932f0f785db162a0"},
+    {"path": "folder-stack.jpg", "role": "Life-stage folders overlapping during scroll", "sha256": "be87d5feef818f8e79f761a7c0342da2f5feca1b37a7bf978557580def3869ac"},
+    {"path": "calendar.jpg", "role": "Compact populated calendar with selected-day details", "sha256": "65095932311b6888a978f2c781356f6aa06fe47c1f5d311f673610f71032422e"},
+    {"path": "plans.jpg", "role": "Source-linked, unscheduled suggested plans", "sha256": "4066c0beeab7b2426f21b6e48a1b2d8e46a250da24b07b7c0635b2e4363c86f1"},
+    {"path": "share.png", "role": "Actual image-rich 1080x1440 canvas export using fictional props", "sha256": "ece1ce8f4c5908b6f029683066a3b67ea22a45276e75c227c4a4a00e2b9efaaf"}
   ]
 }

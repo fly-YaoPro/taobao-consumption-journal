@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Build a new offline journal from existing normalized data. Python 3.9+, no network."""
 import argparse
+import base64
 import hashlib
 import json
 import re
@@ -78,6 +79,23 @@ def prepare(root, skin):
         raise ValueError("微博使用 paper/frosted；淘宝使用 collage")
     rows = normalize(root, meta, kind)
     by_id = {r["id"]: r for r in rows}
+    visual_map = story.get("visuals", {})
+    if not isinstance(visual_map, dict):
+        raise ValueError("visuals 必须是以原图路径为键的对象")
+    raw_images = {im["path"] for r in rows for im in r["images"]}
+    for original, visual in visual_map.items():
+        if original not in raw_images or not isinstance(visual, dict):
+            raise ValueError("视觉素材必须对应实际记录中的原图: " + str(original))
+        if visual.get("kind") not in {"object", "photo", "cover", "design", "service", "source"}:
+            raise ValueError("视觉类型需为 object/photo/cover/design/service/source")
+        if not isinstance(visual.get("title"), str) or not 1 <= len(visual["title"].strip()) <= 24:
+            raise ValueError("视觉素材需24字以内的准确短名，原商品标题留在订单档案")
+        if visual.get("display_path"):
+            local_file(root, visual["display_path"])
+            if visual.get("treatment") not in {"crop", "cutout"}:
+                raise ValueError("派生图片须注明 crop/cutout；不接受生成替换")
+        if visual.get("promotional") and not visual.get("display_path") and visual["kind"] not in {"source", "service"}:
+            visual["kind"] = "source"  # Do not enlarge a sales banner just to fill a page.
     def refs(value):
         ids = value.get("source_ids", [])
         if not ids or any(not isinstance(i, str) or i not in by_id for i in ids):
@@ -132,6 +150,8 @@ def prepare(root, skin):
                 raise ValueError("title_lines 须为原题目的2—3段自然断句，不改写标题")
             if section.get("detail_theme_id") and section["detail_theme_id"] not in theme_ids:
                 raise ValueError("阶段关联了不存在的主题")
+            if section.get("arrangement", "spread") not in {"spread", "ledger", "contrast"}:
+                raise ValueError("arrangement 需为 spread/ledger/contrast")
             if any(c not in context_ids for c in section.get("context_ids", [])):
                 raise ValueError("生活背景须在 confirmed_context 中由用户确认")
             dates = sorted(by_id[i]["date"] for i in ids)
@@ -140,6 +160,20 @@ def prepare(root, skin):
             for note in section.get("notes", []):
                 if not note.get("title") or not note.get("text") or len(note["text"]) > 100 or not set(refs(note)).issubset(ids):
                     raise ValueError("阶段便笺需短文字及该阶段内的来源")
+    if kind == "taobao":
+        bodies = {}
+        for section in themes + stages + threads:
+            body = re.sub(r"\s+", "", section["text"])
+            if body in bodies:
+                raise ValueError("叙事正文重复：合并同一发现，详情只补新信息")
+            bodies[body] = section["id"]
+        home_claims = set()
+        for section in stages + threads:
+            claim = section.get("claim_key")
+            if claim and claim in home_claims:
+                raise ValueError("阶段与跨年线索重复使用 claim_key，请合并或只保留一处")
+            if claim:
+                home_claims.add(claim)
     stages.sort(key=lambda s: s["range"])
     plans = story.get("plans", [])
     if not plans:
@@ -147,15 +181,17 @@ def prepare(root, skin):
     plan_ids = set()
     for p in plans:
         refs(p)
-        if not p.get("id") or p["id"] in plan_ids or not p.get("title") or not p.get("reason") or not re.fullmatch(r"(?:19|20|21)\d{2}-(?:0[1-9]|1[0-2])", p.get("month", "")):
-            raise ValueError("计划需唯一ID、标题、月份、依据 reason 和来源ID")
+        p.setdefault("month", "")
+        if not p.get("id") or p["id"] in plan_ids or not p.get("title") or not p.get("reason") or (p["month"] != "" and not re.fullmatch(r"(?:19|20|21)\d{2}-(?:0[1-9]|1[0-2])", p["month"])):
+            raise ValueError("计划需唯一ID、标题、依据 reason 和来源ID；无排期依据时 month 留空")
         plan_ids.add(p["id"])
     # Display image choices must actually belong to cited records, not a global unrelated gallery.
     for section in [overview] + themes + stages + threads:
         allowed = {im["path"]: (r, im) for i in section["source_ids"] for r in [by_id[i]] for im in r["images"]}
-        choices = section.get("image_paths", [])
-        if not choices:
-            choices = list(allowed)[:3]
+        choices = section.get("image_paths")
+        if choices is None:
+            priority = {"object": 0, "photo": 0, "cover": 1, "design": 2, "service": 3, "source": 4}
+            choices = sorted(allowed, key=lambda path: priority.get(visual_map.get(path, {}).get("kind", "source"), 4))[:5 if section is overview else 3]
         if len(choices) != len(set(choices)):
             raise ValueError("同页图片重复")
         section["images"] = []
@@ -163,8 +199,11 @@ def prepare(root, skin):
             if path not in allowed:
                 raise ValueError("页面图片与来源ID不对应: " + str(path))
             r, im = allowed[path]
-            caption = section.get("image_captions", {}).get(path) or im["caption"] or r["title"]
-            section["images"].append({**im, "date": r["date"], "record_id": r["id"], "caption": caption})
+            visual = visual_map.get(path, {})
+            caption = section.get("image_captions", {}).get(path) or visual.get("title") or im["caption"] or r["title"]
+            section["images"].append({**im, "path": visual.get("display_path") or path,
+                                      "large": im["large"], "kind": visual.get("kind", "source" if kind == "taobao" else "photo"),
+                                      "date": r["date"], "record_id": r["id"], "caption": caption})
     actual = {"start": rows[0]["date"], "end": rows[-1]["date"]}
     meta["actual_range"] = actual
     meta["plan_year"] = int(meta.get("plan_year") or datetime.now().year + 1)
@@ -197,9 +236,27 @@ def build(source, output, skin, template=None):
             if font.is_symlink() or not font.is_file() or font.suffix.lower() not in {".woff2", ".txt", ".md"}:
                 raise ValueError("模板 fonts/ 仅允许本地字体与许可说明")
         shutil.copytree(font_dir, output / "fonts")
+    # Data URLs keep genuine local images canvas-safe even when opened with file://.
+    # Raw order files stay unchanged; these are display resources, never invented pictures.
+    share_candidates = data["story"]["overview"]["images"]
+    if not any(im.get("kind") in {"object", "photo", "cover", "design"} for im in share_candidates):
+        share_candidates = [im for t in data["story"]["themes"] for im in t.get("images", [])]
+    data["share_images"] = []
+    seen_share = set()
+    mime_types = {".jpg":"image/jpeg", ".jpeg":"image/jpeg", ".png":"image/png", ".webp":"image/webp", ".gif":"image/gif", ".avif":"image/avif"}
+    for im in share_candidates:
+        if im.get("kind") not in {"object", "photo", "cover", "design"} or im["path"] in seen_share:
+            continue
+        file = local_file(source, im["path"])
+        data["share_images"].append({"caption":im["caption"], "kind":im["kind"], "date":im["date"],
+                                     "data_url":"data:" + mime_types[file.suffix.lower()] + ";base64," + base64.b64encode(file.read_bytes()).decode("ascii")})
+        seen_share.add(im["path"])
+        if len(data["share_images"]) == 4:
+            break
     js = "window.JOURNAL_DATA = " + json.dumps(data, ensure_ascii=False).replace("<", "\\u003c") + ";\n"
     (output / "journal-data.js").write_text(js, encoding="utf-8")
     paths = {im[k] for r in data["records"] for im in r["images"] for k in ("path", "large")}
+    paths.update(v["display_path"] for v in data["story"].get("visuals", {}).values() if v.get("display_path"))
     for name in paths:
         target = output / name
         target.parent.mkdir(parents=True, exist_ok=True)

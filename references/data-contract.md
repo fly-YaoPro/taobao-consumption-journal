@@ -27,6 +27,7 @@
 - 多商品父订单只计一次实付。paid_amount与refund_amount原值保留；计算净支出前核清amount_basis。unknown不算净额，net_after_refund不再扣退款，未知金额不填0。按币种汇总，不凭商品标价填订单实付。
 - `orders.js`：与JSON同源的普通JS数据，如`window.CONSUMPTION_JOURNAL_DATA = {...};`；JSON.stringify后把`<`替为`\u003c`。不得夹带Cookie/令牌或未清洗HTML，不把用户内容执行为脚本。
 - `story.json`：`overview:{text,source_ids}`、`themes:[{id,title,text,source_ids,image_paths,layout}]`。source_ids指真实父order_id；若主题具体到商品另加item_ids，可回查父订单。布局A/B/C不展示到UI；没有人物、角色或影视彩蛋字段。
+- 展示层增加 visuals 原图映射、claim_key、home 与 arrangement，见 [素材类型](media-selection.md) 和 [实现说明](implementation.md)。原始订单标题和图片不覆盖；派生图片只供排版，放大入口仍能核对原图。计划 month 可为合法年月或空字符串，空表示暂不排期。
 
 ## 离线与计划
 
@@ -38,7 +39,7 @@
 
 普通script加载orders.js，不依赖file:// fetch JSON、CDN字体/脚本或运行时AI。localStorage保存位置和计划，需实测file://兼容；JSON导出/导入作可携带备份。导入前可下载当前备份，按ID合并，冲突保留手动版本，有恢复入口，不清空原记录。
 
-隐私默认：分享图隐藏账号、订单号、精确金额、私人照片；整个离线包也不公开部署。参考案例图片只存在Skill里，不复制成用户订单。
+分享图默认使用对应真实商品图，按用户要求选图；账号、地址、订单号等无关信息不进入图面。构建输出的 share_images 只保存所选本地图片的同源数据URL、短名、类型和日期，供离线canvas排版，不加入平台凭据。整个离线包不自动公开部署；示例图片不复制成用户订单。
 
 ## 本地检查
 

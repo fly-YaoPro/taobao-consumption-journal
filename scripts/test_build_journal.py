@@ -141,6 +141,99 @@ class BuilderTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "页面图片与来源ID不对应"):
                 prepare(self.root, "paper")
 
+    def media_fixture(self):
+        fixture(self.root, "taobao")
+        (self.root / "images").mkdir(exist_ok=True)
+        (self.root / "images/a.jpg").write_bytes(b"synthetic image test payload")
+        orders = json.loads((self.root / "orders.json").read_text())
+        orders[0]["items"][0]["image_path"] = "images/a.jpg"
+        write(self.root, "orders.json", orders)
+
+    def test_unclassified_images_are_source_only(self):
+        self.media_fixture()
+        self.assertEqual(prepare(self.root, "collage")["story"]["overview"]["images"][0]["kind"], "source")
+
+    def test_sales_banner_is_not_promoted_to_cover(self):
+        self.media_fixture()
+        self.mutate(lambda s: s.update(visuals={"images/a.jpg": {"kind":"cover", "title":"合成促销样本", "promotional":True}}))
+        self.assertEqual(prepare(self.root, "collage")["story"]["overview"]["images"][0]["kind"], "source")
+
+    def test_verified_derivative_keeps_original_and_is_copied(self):
+        self.media_fixture()
+        (self.root / "derived").mkdir()
+        (self.root / "derived/a.png").write_bytes(b"synthetic derived test payload")
+        self.mutate(lambda s: s.update(visuals={"images/a.jpg":{"kind":"object", "title":"测试物件", "display_path":"derived/a.png", "treatment":"cutout"}}))
+        out = Path(self.temp.name) / "media-output"
+        build(self.root, out, "collage")
+        image = prepare(self.root, "collage")["story"]["overview"]["images"][0]
+        self.assertEqual(image["path"], "derived/a.png")
+        self.assertEqual(image["large"], "images/a.jpg")
+        self.assertTrue((out / "images/a.jpg").is_file())
+        self.assertTrue((out / "derived/a.png").is_file())
+
+    def test_generated_or_unknown_visual_is_rejected(self):
+        self.media_fixture()
+        for visual in ({"images/missing.jpg":{"kind":"object", "title":"错误来源"}},
+                       {"images/a.jpg":{"kind":"cartoon", "title":"错误类型"}}):
+            self.mutate(lambda s: s.update(visuals=visual))
+            with self.assertRaises(ValueError):
+                prepare(self.root, "collage")
+
+    def test_derivative_cannot_escape_or_use_generation(self):
+        self.media_fixture()
+        self.mutate(lambda s: s.update(visuals={"images/a.jpg":{"kind":"object", "title":"样本", "display_path":"../outside.png", "treatment":"cutout"}}))
+        with self.assertRaises(ValueError):
+            prepare(self.root, "collage")
+        self.mutate(lambda s: s.update(visuals={"images/a.jpg":{"kind":"object", "title":"样本", "display_path":"images/a.jpg", "treatment":"generate"}}))
+        with self.assertRaises(ValueError):
+            prepare(self.root, "collage")
+
+    def test_explicit_empty_images_is_not_filled_from_orders(self):
+        self.media_fixture()
+        self.mutate(lambda s: s["overview"].update(image_paths=[]))
+        self.assertEqual(prepare(self.root, "collage")["story"]["overview"]["images"], [])
+
+    def test_duplicate_narrative_is_rejected(self):
+        self.media_fixture()
+        text = json.loads((self.root / "story.json").read_text())["themes"][0]["text"]
+        self.mutate(lambda s: s.update(stages=[{**self.stage(), "text":text}]))
+        with self.assertRaisesRegex(ValueError, "正文重复"):
+            prepare(self.root, "collage")
+
+    def test_duplicate_home_claim_is_rejected(self):
+        self.media_fixture()
+        self.mutate(lambda s: s.update(stages=[self.stage(claim_key="same")], threads=[dict(id="thread", title="另一个标题", text="措辞不同也不应重复同一发现。", source_ids=["demo-1"], claim_key="same")]))
+        with self.assertRaisesRegex(ValueError, "claim_key"):
+            prepare(self.root, "collage")
+
+    def test_plan_can_be_unscheduled_without_changing_source(self):
+        self.media_fixture()
+        self.mutate(lambda s: s["plans"][0].pop("month"))
+        before = (self.root / "story.json").read_bytes()
+        self.assertEqual(prepare(self.root, "collage")["story"]["plans"][0]["month"], "")
+        self.assertEqual((self.root / "story.json").read_bytes(), before)
+
+    def test_share_embeds_same_local_image_for_offline_canvas(self):
+        self.media_fixture()
+        self.mutate(lambda s: s.update(visuals={"images/a.jpg":{"kind":"object","title":"测试物件"}}))
+        out = Path(self.temp.name) / "share-output"
+        build(self.root, out, "collage")
+        js = (out / "journal-data.js").read_text(encoding="utf-8")
+        data = json.loads(js[len("window.JOURNAL_DATA = "):].strip().rstrip(';'))
+        import base64
+        encoded = data["share_images"][0]["data_url"]
+        self.assertEqual(base64.b64decode(encoded.split(',')[1]), (self.root / "images/a.jpg").read_bytes())
+        self.assertNotIn("order_id", data["share_images"][0])
+
+    def test_share_does_not_enlarge_promotional_source(self):
+        self.media_fixture()
+        self.mutate(lambda s: s.update(visuals={"images/a.jpg":{"kind":"source","title":"测试广告","promotional":True}}))
+        out = Path(self.temp.name) / "share-source-only"
+        build(self.root, out, "collage")
+        js = (out / "journal-data.js").read_text(encoding="utf-8")
+        data = json.loads(js[len("window.JOURNAL_DATA = "):].strip().rstrip(';'))
+        self.assertEqual(data["share_images"], [])
+
 
 if __name__ == "__main__":
     unittest.main()

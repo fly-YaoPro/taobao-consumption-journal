@@ -10,34 +10,45 @@
   };
   function sticker(node,kind,cls){const el=node('span','scrap-sticker '+(cls||''));el.setAttribute('aria-hidden','true');el.innerHTML=art[kind];return el;}
   function photos(ctx,section,limit=5){return ctx.assets(section).slice(0,limit);}
-  function showPhoto(ctx,asset,cls){const fig=ctx.photo({...asset,caption:asset.caption||'订单中的商品'});fig.classList.add('scrap-photo');if(cls)fig.classList.add(cls);return fig;}
+  function showPhoto(ctx,asset,cls){
+    const kind=asset.kind||'source',caption=asset.caption||'一笔购买记录',short=Array.from(caption).length>24?Array.from(caption).slice(0,20).join('')+'…':caption;
+    const fig=ctx.photo({...asset,caption:short});fig.classList.remove('photo');fig.classList.add('scrap-photo','journal-artifact','media-'+kind);fig.dataset.mediaKind=kind;
+    if(kind==='service'||kind==='source'){
+      const open=fig.querySelector('button');open.replaceChildren(ctx.node('span','artifact-type',kind==='service'?'服务订单 · 记录卡':'订单摘要'),ctx.node('strong','artifact-title',short),ctx.node('span','artifact-date','下单于 '+asset.date),ctx.node('span','artifact-open','查看原图 ↗'));
+      fig.querySelector('figcaption').hidden=true;
+    }
+    if(cls)fig.classList.add(cls);return fig;
+  }
   function bodyText(ctx,section){const box=ctx.node('div','story-copy');box.append(ctx.node('p','',section.text));if(section.note)box.append(ctx.node('p','small-hand-note',section.note));return box;}
   function evidence(ctx,section){const detail=ctx.node('details','scrap-evidence'),summary=ctx.node('summary','','看看这些订单');detail.append(summary,ctx.sources(section.source_ids));return detail;}
   function range(ctx,section){const dates=(section.source_ids||[]).map(id=>ctx.byId.get(id)?.date).filter(Boolean).sort();return section.range||(dates.length?(dates[0]===dates.at(-1)?dates[0]:dates[0]+' — '+dates.at(-1)):'日期以原订单为准');}
   function headline(ctx,text,cls){const heading=ctx.node('h1',cls,text);heading.style.setProperty('--letters',String(Math.max(6,Array.from(text).length)));return heading;}
-  function gallery(ctx,section,cls){const list=ctx.node('div','scrap-gallery '+(cls||'')),assets=photos(ctx,section);if(!assets.length){list.classList.add('no-photos');list.append(ctx.node('p','source-note','这段记录没有取得图片，保留文字和来源，不补画历史商品。'));return list;}assets.forEach((a,i)=>{const frame=showPhoto(ctx,a);frame.style.setProperty('--i',i);list.append(frame);});return list;}
+  function gallery(ctx,section,cls){const list=ctx.node('div','scrap-gallery '+(cls||'')),assets=photos(ctx,section);list.dataset.count=String(assets.length);if(!assets.length){list.classList.add('no-photos');list.append(ctx.node('p','source-note','这段记录用文字和订单来源呈现。'));return list;}assets.forEach((a,i)=>{const frame=showPhoto(ctx,a);frame.style.setProperty('--i',i);list.append(frame);});return list;}
+  function homeThemes(D){const primary=new Set([...(D.story.stages||[]),...(D.story.threads||[])].map(x=>x.claim_key).filter(Boolean));return D.story.themes.filter(t=>t.home!==false&&(!t.claim_key||!primary.has(t.claim_key)));}
   function sectionHead(ctx,eyebrow,title){const box=ctx.node('header','life-section-head');box.append(ctx.node('p','hand-kicker',eyebrow),ctx.node('h2','display-heading',title));return box;}
   function objectShelf(ctx){
     const {node,D,button,host}=ctx,section=node('section','object-shelf');
     section.append(sectionHead(ctx,'几件东西，先把记忆叫回来。','这些东西，还记得吗？'));
     const grid=node('div','object-shelf-grid');
-    D.story.themes.slice(0,3).forEach((t,i)=>{
+    const selected=homeThemes(D).slice(0,3);if(!selected.length)return;section.dataset.count=String(selected.length);
+    selected.forEach((t,i)=>{
       const card=node('article','object-memory'),pictures=node('div','object-memory-photos');
       photos(ctx,t,2).forEach(a=>pictures.append(showPhoto(ctx,a)));
-      const copy=node('div','object-memory-copy');copy.append(node('span','memory-index','0'+(i+1)),node('h3','',t.title),node('p','',t.teaser||t.text),button('翻看这件事 ↗',()=>ctx.go(i+1),'text-link'));
+      const copy=node('div','object-memory-copy');copy.append(node('span','memory-index','0'+(i+1)),node('h3','',t.title),node('p','',t.teaser||t.text),button('翻看这件事 ↗',()=>ctx.go(D.story.themes.indexOf(t)+1),'text-link'));
       card.append(pictures,copy);grid.append(card);
-    });section.append(grid);host.append(section);
+    });section.id='objects';section.append(grid);host.append(section);
   }
   function lifeStages(ctx){
     const {node,D,host,button}=ctx,hasStages=!!D.story.stages?.length;
-    const chapters=hasStages?D.story.stages:D.story.themes;
+    if(!hasStages)return; // Missing evidence is not a reason to relabel themes as life stages.
+    const chapters=D.story.stages;
     const section=node('section','life-chapters');section.id='life-chapters';
     section.append(sectionHead(ctx,hasStages?'按时间翻，买东西的重心也在变。':'沿着真实记录，翻几段具体的小事。',hasStages?'原来，日子换过几种过法。':'把这些小事，装进文件夹。'));
     const index=node('nav','stage-index');index.setAttribute('aria-label','阶段快速跳转');
     chapters.forEach((s,i)=>{const a=node('a','',s.label||s.title);a.href='#chapter-'+i;index.append(a);});section.append(index);
     const stack=node('div','life-folder-stack');
     chapters.forEach((s,i)=>{
-      const panel=node('article','life-folder life-folder-'+i%4);panel.id='chapter-'+i;panel.style.setProperty('--chapter',i);
+      const panel=node('article','life-folder life-folder-'+i%4);panel.id='chapter-'+i;panel.dataset.arrangement=s.arrangement||['spread','ledger','contrast'][i%3];panel.style.setProperty('--chapter',i);
       const tab=node('div','life-folder-tab');tab.append(node('span','',String(i+1).padStart(2,'0')),node('span','',s.label||s.period_label||s.title));panel.append(tab);
       const inside=node('div','life-folder-inside'),main=node('div','life-folder-main'),side=node('aside','life-folder-side');
       const chapterTitle=node('h3','chapter-title');
@@ -70,9 +81,9 @@
   function closing(ctx){
     const {node,button,D,host}=ctx,section=node('section','life-coda');
     section.append(sectionHead(ctx,'翻到最后，不用急着下结论。','下一页，还没下单。'));
-    const spread=node('div','coda-spread'),letter=node('div','coda-letter');letter.append(node('span','tape'),node('p','',D.story.overview.note||D.story.overview.text));
+    const spread=node('div','coda-spread'),letter=node('div','coda-letter');spread.dataset.letter=String(!!D.story.closing);if(D.story.closing)letter.append(node('span','tape'),node('p','',D.story.closing));
     const actions=node('div','coda-actions');D.story.plans.slice(0,3).forEach((p,i)=>{const item=node('div','coda-action');item.append(node('span','',String(i+1).padStart(2,'0')),node('p','',p.title));actions.append(item);});actions.append(button('把接下来的小事排一排 →',()=>ctx.view('plans'),'sticker-button'));
-    spread.append(letter,actions);section.append(spread);const music=ctx.song();if(music)section.append(music);host.append(section);
+    if(D.story.closing)spread.append(letter);spread.append(actions);section.append(spread);const music=ctx.song();if(music)section.append(music);host.append(section);
   }
   function home(ctx){
     const {node,button,p,D,host}=ctx,hero=node('section','scrap-hero');
@@ -82,11 +93,10 @@
     left.append(node('span','tape'),node('p','note-label','翻翻才发现'),node('p','hero-summary',p.text));if(p.note)left.append(node('p','hero-note-aside',p.note));left.append(evidence(ctx,p));
     const pictures=gallery(ctx,p,'hero-gallery');pictures.classList.add('reveal');
     right.append(node('span','paperclip'),node('div','pill-strip','这几笔，值得翻出来'),node('h2','hand-heading','购物车的小线索'));
-    (D.story.findings||[]).slice(0,3).forEach((f,i)=>{const row=node('div','hero-finding');row.append(node('span','finding-number',String(i+1).padStart(2,'0')),node('strong','',f.title),node('p','',f.text));right.append(row);});
+    (D.story.findings||[]).slice(0,2).forEach((f,i)=>{const row=node('div','hero-finding');row.append(node('span','finding-number',String(i+1).padStart(2,'0')),node('strong','',f.title),node('p','',f.text));right.append(row);});
     stage.append(left,pictures,right,sticker(node,'flower','hero-flower'));hero.append(stage);host.append(hero);
-    const band=node('div','scrap-band');band.setAttribute('aria-hidden','true');const track=node('div','band-track');const labels=(D.story.themes||[]).slice(0,5).map(t=>t.title);if(!labels.length)labels.push('翻翻买过的东西');[...labels,...labels].forEach(t=>{track.append(node('span','',t),node('i','','✳'));});band.append(track);host.append(band);
-    const anchors=node('nav','home-anchor-nav');anchors.setAttribute('aria-label','回看章节');[['objects','几件旧物'],['life-chapters','几段日子'],['life-threads','一直没变的']].forEach(([id,text])=>{if(id==='life-threads'&&!D.story.threads?.length)return;const a=node('a','',text+' ↘');a.href='#'+id;anchors.append(a);});host.append(anchors);
-    objectShelf(ctx);host.querySelector('.object-shelf').id='objects';lifeStages(ctx);threads(ctx);closing(ctx);
+    const anchors=node('nav','home-anchor-nav');anchors.setAttribute('aria-label','回看章节');[['objects','几件旧物',homeThemes(D).length],['life-chapters','几段日子',D.story.stages?.length],['life-threads','一直没变的',D.story.threads?.length]].forEach(([id,text,count])=>{if(!count)return;const a=node('a','',text+' ↘');a.href='#'+id;anchors.append(a);});host.append(anchors);
+    objectShelf(ctx);lifeStages(ctx);threads(ctx);closing(ctx);
   }
   function theme(ctx){
     const {node,button,p,page,host}=ctx,layout=p.layout||'A',section=node('article','scrap-theme scrap-layout-'+layout);
@@ -96,7 +106,7 @@
     if(layout==='B'){
       const cards=gallery(ctx,p,'comparison-gallery');content.append(cards,bodyText(ctx,p));
     }else if(layout==='C'){
-      const receipt=node('div','story-receipt');receipt.append(node('p','receipt-heading','这些订单，连在一起看'));(p.source_ids||[]).slice().sort((a,b)=>(ctx.byId.get(a)?.date||'').localeCompare(ctx.byId.get(b)?.date||'')).slice(0,6).forEach(id=>{const r=ctx.byId.get(id);if(!r)return;const row=node('div','receipt-row');row.append(node('time','',r.date),node('span','',r.title));receipt.append(row);});receipt.append(node('p','receipt-end','· · · 由原始记录串起 · · ·'));content.append(receipt,gallery(ctx,p,'receipt-gallery'),bodyText(ctx,p));
+      const receipt=node('div','story-receipt');receipt.append(node('p','receipt-heading','这些订单，连在一起看'));(p.source_ids||[]).slice().sort((a,b)=>(ctx.byId.get(a)?.date||'').localeCompare(ctx.byId.get(b)?.date||'')).slice(0,6).forEach(id=>{const r=ctx.byId.get(id);if(!r)return;const row=node('div','receipt-row');const short=p.source_labels?.[id]||r.category||r.title.slice(0,20);row.append(node('time','',r.date),node('span','',short));receipt.append(row);});receipt.append(node('p','receipt-end','· · · 下单记录，不是使用日期 · · ·'));content.append(receipt,gallery(ctx,p,'receipt-gallery'),bodyText(ctx,p));
     }else{
       content.append(gallery(ctx,p,'single-gallery'),bodyText(ctx,p));
     }
@@ -118,7 +128,7 @@
   function render(ctx){
     ctx.host.classList.add('scrapbook-runtime');ctx.page===0?home(ctx):theme(ctx);motion(ctx);
     const first=photos(ctx,ctx.D.story.overview,1)[0],preview=document.querySelector('#dock-preview');if(preview){if(first){preview.src=first.path;preview.hidden=false;}else preview.hidden=true;}
-    document.body.dataset.journalFramework='life-stages-v4';
+    document.body.dataset.journalFramework='editorial-media-v5';
   }
   window.JournalScrapbook={render};
 })();
