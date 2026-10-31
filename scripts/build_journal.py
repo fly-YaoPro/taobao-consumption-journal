@@ -8,6 +8,7 @@ import re
 import shutil
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from image_files import image_info
 
 
 def load(path):
@@ -22,6 +23,10 @@ def local_file(root, name):
         raise ValueError("图片路径越界或文件缺失: " + name)
     if path.suffix.lower() not in {".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"}:
         raise ValueError("证据图片只接受本地栅格图，不执行 SVG/HTML: " + name)
+    try:
+        image_info(path)
+    except ValueError as exc:
+        raise ValueError("图片文件无效，不能把下载响应当成功：" + name + ": " + str(exc)) from exc
     return path
 
 
@@ -57,6 +62,8 @@ def normalize(root, meta, kind):
             items = r.get("items", [])
             for it in items:
                 path = it.get("image_path")
+                if it.get("image_status") == "saved" and not path:
+                    raise ValueError("商品标记已下载但没有 image_path，请先修复订单到图片的绑定")
                 if path:
                     local_file(root, path)
                     images.append({"path": path, "large": path, "caption": it.get("name", "商品"), "item_id": str(it["item_id"])})
@@ -200,10 +207,29 @@ def prepare(root, skin):
                 raise ValueError("页面图片与来源ID不对应: " + str(path))
             r, im = allowed[path]
             visual = visual_map.get(path, {})
+            if kind == "taobao" and not visual:
+                raise ValueError("图片已下载但未完成页面展示映射：" + path + "；先读图填写 story.visuals，不能默认隐藏为来源卡")
             caption = section.get("image_captions", {}).get(path) or visual.get("title") or im["caption"] or r["title"]
             section["images"].append({**im, "path": visual.get("display_path") or path,
                                       "large": im["large"], "kind": visual.get("kind", "source" if kind == "taobao" else "photo"),
                                       "date": r["date"], "record_id": r["id"], "caption": caption})
+    if kind == "taobao":
+        sections = [overview] + themes + stages + threads
+        visible_kinds = {"object", "photo", "cover", "design"}
+        eligible = {path for path, visual in visual_map.items() if visual["kind"] in visible_kinds}
+        visible = [im for section in sections for im in section["images"] if im["kind"] in visible_kinds]
+        if eligible and not any(im["kind"] in visible_kinds for im in overview["images"]):
+            raise ValueError("有已核对可展示的商品图片，但首页没有实际图片；补齐 overview.source_ids 与 image_paths，不能只在日历出现")
+        if raw_images and not eligible and not str(story.get("image_fallback_reason") or "").strip():
+            raise ValueError("全部商品图都被降成服务/来源卡；先复核分类，确实全无适合图片时写 image_fallback_reason，不能静默做成纯文字")
+        if not raw_images and any((root / folder).is_dir() and any(p.is_file() for p in (root / folder).rglob("*")) for folder in ("images", "downloads")):
+            raise ValueError("目录里有图片文件但订单未绑定任何 image_path；先核对下载清单与商品行，不能交付无图页面")
+        media_summary = {"downloaded_originals": len(raw_images), "classified_originals": len(visual_map),
+                         "displayable_originals": len(eligible), "rendered_image_slots": len(visible),
+                         "overview_image_slots": sum(im["kind"] in visible_kinds for im in overview["images"]),
+                         "fallback_reason": story.get("image_fallback_reason", "")}
+    else:
+        media_summary = None
     actual = {"start": rows[0]["date"], "end": rows[-1]["date"]}
     meta["actual_range"] = actual
     meta["plan_year"] = int(meta.get("plan_year") or datetime.now().year + 1)
@@ -215,7 +241,7 @@ def prepare(root, skin):
     identity = str(meta.get("project_id") or meta.get("target", {}).get("uid") or rows[0]["id"])
     project_key = hashlib.sha256((kind + ":" + identity).encode()).hexdigest()[:16]
     return {"version": 2, "project_key": project_key, "skin": skin, "meta": meta, "story": story,
-            "coverage": coverage, "records": rows, "scope": scope}
+            "coverage": coverage, "records": rows, "scope": scope, "media_summary": media_summary}
 
 
 def build(source, output, skin, template=None):
@@ -243,18 +269,20 @@ def build(source, output, skin, template=None):
         share_candidates = [im for t in data["story"]["themes"] for im in t.get("images", [])]
     data["share_images"] = []
     seen_share = set()
-    mime_types = {".jpg":"image/jpeg", ".jpeg":"image/jpeg", ".png":"image/png", ".webp":"image/webp", ".gif":"image/gif", ".avif":"image/avif"}
+    mime_types = {"jpeg":"image/jpeg", "png":"image/png", "webp":"image/webp", "gif":"image/gif"}
     for im in share_candidates:
         if im.get("kind") not in {"object", "photo", "cover", "design"} or im["path"] in seen_share:
             continue
         file = local_file(source, im["path"])
         data["share_images"].append({"caption":im["caption"], "kind":im["kind"], "date":im["date"],
-                                     "data_url":"data:" + mime_types[file.suffix.lower()] + ";base64," + base64.b64encode(file.read_bytes()).decode("ascii")})
+                                     "data_url":"data:" + mime_types[image_info(file)["format"]] + ";base64," + base64.b64encode(file.read_bytes()).decode("ascii")})
         seen_share.add(im["path"])
         if len(data["share_images"]) == 4:
             break
     js = "window.JOURNAL_DATA = " + json.dumps(data, ensure_ascii=False).replace("<", "\\u003c") + ";\n"
     (output / "journal-data.js").write_text(js, encoding="utf-8")
+    if data["media_summary"] is not None:
+        (output / "media-report.json").write_text(json.dumps(data["media_summary"], ensure_ascii=False, indent=2), encoding="utf-8")
     paths = {im[k] for r in data["records"] for im in r["images"] for k in ("path", "large")}
     paths.update(v["display_path"] for v in data["story"].get("visuals", {}).values() if v.get("display_path"))
     for name in paths:

@@ -8,6 +8,7 @@ from datetime import date, datetime, timezone, timedelta
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from urllib.parse import urlsplit
+from image_files import image_info
 
 TITLES={'weibo':'人生手账','taobao':'消费手账'}
 STATUSES={'complete','partial','selected','unread','failed','empty'}
@@ -32,6 +33,9 @@ def check(root,kind,stage='data'):
         path=(root/value.replace('\\','/')).resolve()
         if not path.is_relative_to(root):err(f'{field}: path leaves project');return
         if not path.is_file():err(f'{field}: local file is missing')
+        elif field.endswith('.image_path'):
+            try:image_info(path)
+            except (OSError,ValueError) as exc:err(f'{field}: invalid local image ({exc})')
     def url(value,field):
         if not isinstance(value,str):err(f'{field}: expected URL');return
         parts=urlsplit(value)
@@ -150,6 +154,12 @@ def check(root,kind,stage='data'):
     if stage=='final':
         story=load('story.json');private_keys(story,'story')
         if not isinstance(story,dict):err('story.json: expected object');story={}
+        if kind=='taobao':
+            try:
+                from build_journal import prepare
+                prepare(root,'collage')
+            except (ValueError,OSError,KeyError,TypeError,AttributeError) as exc:
+                err('page media/content gate: '+str(exc))
         overview=story.get('overview',{})
         if not isinstance(overview,dict):overview={};err('story.overview: expected object')
         if len(str(overview.get('text','')))>200:err('story.overview: exceeds 200 characters')

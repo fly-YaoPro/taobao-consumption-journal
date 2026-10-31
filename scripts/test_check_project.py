@@ -91,7 +91,7 @@ class Checks(unittest.TestCase):
     def test_valid_final_and_external_script_rejected(self):
         with tempfile.TemporaryDirectory() as d:
             r=Path(d);fixture(r,'taobao')
-            story={'overview':{'text':'合成消费回看。','source_ids':['sample-order']},'themes':[]};put(r,'story.json',story)
+            story={'overview':{'headline':'合成测试回看','text':'合成消费回看。','source_ids':['sample-order']},'themes':[{'id':'t','title':'样本','text':'离线功能测试。','source_ids':['sample-order']}], 'findings':[{'title':'测试','text':'合成数据','source_ids':['sample-order']}], 'plans':[{'id':'p','title':'核对测试记录','reason':'合成测试建议','source_ids':['sample-order'],'month':''}]};put(r,'story.json',story)
             (r/'index.html').write_text('<link href="styles.css" rel="stylesheet"><script src="orders.js"></script><script src="app.js"></script>',encoding='utf-8')
             for n in ('styles.css','orders.js','app.js'):(r/n).write_text('/* synthetic fixture */',encoding='utf-8')
             def chunk(tag,data):return struct.pack('>I',len(data))+tag+data+struct.pack('>I',zlib.crc32(tag+data)&0xffffffff)

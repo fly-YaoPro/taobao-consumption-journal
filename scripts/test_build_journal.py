@@ -2,6 +2,8 @@
 import copy
 import json
 import tempfile
+import struct
+import zlib
 import unittest
 from pathlib import Path
 from build_journal import build, prepare, local_file, day
@@ -9,6 +11,12 @@ from build_journal import build, prepare, local_file, day
 
 def write(root, name, value):
     (root / name).write_text(json.dumps(value, ensure_ascii=False), encoding="utf-8")
+
+
+def synthetic_png():
+    def chunk(tag, data):
+        return struct.pack('>I', len(data)) + tag + data + struct.pack('>I', zlib.crc32(tag + data) & 0xffffffff)
+    return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', 80, 80, 8, 0, 0, 0, 0)) + chunk(b'IDAT', zlib.compress((b'\0' + b'\x80' * 80) * 80)) + chunk(b'IEND', b'')
 
 
 def fixture(root, kind="weibo"):
@@ -144,24 +152,27 @@ class BuilderTests(unittest.TestCase):
     def media_fixture(self):
         fixture(self.root, "taobao")
         (self.root / "images").mkdir(exist_ok=True)
-        (self.root / "images/a.jpg").write_bytes(b"synthetic image test payload")
+        (self.root / "images/a.jpg").write_bytes(synthetic_png())
         orders = json.loads((self.root / "orders.json").read_text())
         orders[0]["items"][0]["image_path"] = "images/a.jpg"
         write(self.root, "orders.json", orders)
+        self.mutate(lambda s: s.update(visuals={"images/a.jpg":{"kind":"object", "title":"测试物件"}}))
 
-    def test_unclassified_images_are_source_only(self):
+    def test_unclassified_images_cannot_silently_disappear(self):
         self.media_fixture()
-        self.assertEqual(prepare(self.root, "collage")["story"]["overview"]["images"][0]["kind"], "source")
+        self.mutate(lambda s: s.pop("visuals"))
+        with self.assertRaisesRegex(ValueError, "未完成页面展示映射"):
+            prepare(self.root, "collage")
 
     def test_sales_banner_is_not_promoted_to_cover(self):
         self.media_fixture()
-        self.mutate(lambda s: s.update(visuals={"images/a.jpg": {"kind":"cover", "title":"合成促销样本", "promotional":True}}))
+        self.mutate(lambda s: s.update(visuals={"images/a.jpg": {"kind":"cover", "title":"合成促销样本", "promotional":True}}, image_fallback_reason="合成测试仅有促销广告，已核对没有可用商品照片"))
         self.assertEqual(prepare(self.root, "collage")["story"]["overview"]["images"][0]["kind"], "source")
 
     def test_verified_derivative_keeps_original_and_is_copied(self):
         self.media_fixture()
         (self.root / "derived").mkdir()
-        (self.root / "derived/a.png").write_bytes(b"synthetic derived test payload")
+        (self.root / "derived/a.png").write_bytes(synthetic_png())
         self.mutate(lambda s: s.update(visuals={"images/a.jpg":{"kind":"object", "title":"测试物件", "display_path":"derived/a.png", "treatment":"cutout"}}))
         out = Path(self.temp.name) / "media-output"
         build(self.root, out, "collage")
@@ -190,8 +201,8 @@ class BuilderTests(unittest.TestCase):
 
     def test_explicit_empty_images_is_not_filled_from_orders(self):
         self.media_fixture()
-        self.mutate(lambda s: s["overview"].update(image_paths=[]))
-        self.assertEqual(prepare(self.root, "collage")["story"]["overview"]["images"], [])
+        self.mutate(lambda s: s["themes"][0].update(image_paths=[]))
+        self.assertEqual(prepare(self.root, "collage")["story"]["themes"][0]["images"], [])
 
     def test_duplicate_narrative_is_rejected(self):
         self.media_fixture()
@@ -227,12 +238,56 @@ class BuilderTests(unittest.TestCase):
 
     def test_share_does_not_enlarge_promotional_source(self):
         self.media_fixture()
-        self.mutate(lambda s: s.update(visuals={"images/a.jpg":{"kind":"source","title":"测试广告","promotional":True}}))
+        self.mutate(lambda s: s.update(visuals={"images/a.jpg":{"kind":"source","title":"测试广告","promotional":True}}, image_fallback_reason="合成测试全部为广告，原图保留在档案"))
         out = Path(self.temp.name) / "share-source-only"
         build(self.root, out, "collage")
         js = (out / "journal-data.js").read_text(encoding="utf-8")
         data = json.loads(js[len("window.JOURNAL_DATA = "):].strip().rstrip(';'))
         self.assertEqual(data["share_images"], [])
+
+    def test_available_images_cannot_all_be_removed_from_hero(self):
+        self.media_fixture()
+        self.mutate(lambda s: s["overview"].update(image_paths=[]))
+        with self.assertRaisesRegex(ValueError, "首页没有实际图片"):
+            prepare(self.root, "collage")
+
+    def test_all_images_downgraded_needs_review_reason(self):
+        self.media_fixture()
+        self.mutate(lambda s: s.update(visuals={"images/a.jpg":{"kind":"source","title":"样本"}}))
+        with self.assertRaisesRegex(ValueError, "全部商品图都被降成"):
+            prepare(self.root, "collage")
+
+    def test_html_renamed_as_jpg_is_not_success(self):
+        self.media_fixture()
+        (self.root / "images/a.jpg").write_text('<html>403 denied</html>', encoding='utf-8')
+        with self.assertRaisesRegex(ValueError, "图片文件无效"):
+            prepare(self.root, "collage")
+
+    def test_saved_without_binding_is_rejected(self):
+        fixture(self.root, "taobao")
+        orders = json.loads((self.root / "orders.json").read_text())
+        orders[0]["items"][0]["image_status"] = "saved"
+        write(self.root, "orders.json", orders)
+        with self.assertRaisesRegex(ValueError, "没有 image_path"):
+            prepare(self.root, "collage")
+
+    def test_orphan_downloads_do_not_count_as_visible_images(self):
+        fixture(self.root, "taobao")
+        (self.root / "images").mkdir()
+        (self.root / "images/orphan.png").write_bytes(synthetic_png())
+        with self.assertRaisesRegex(ValueError, "订单未绑定"):
+            prepare(self.root, "collage")
+
+    def test_report_and_mime_use_actual_image_bytes(self):
+        self.media_fixture()
+        out = Path(self.temp.name) / "media-report"
+        build(self.root, out, "collage")
+        report = json.loads((out / "media-report.json").read_text())
+        self.assertEqual(report["overview_image_slots"], 1)
+        self.assertEqual(report["displayable_originals"], 1)
+        js = (out / "journal-data.js").read_text(encoding="utf-8")
+        data = json.loads(js[len("window.JOURNAL_DATA = "):].strip().rstrip(';'))
+        self.assertTrue(data["share_images"][0]["data_url"].startswith('data:image/png;base64,'))
 
 
 if __name__ == "__main__":

@@ -9,6 +9,7 @@
   orders.json
   orders.js
   story.json
+  media-report.json  构建生成的图片绑定汇总
   index.html
   styles.css
   app.js
@@ -28,6 +29,7 @@
 - `orders.js`：与JSON同源的普通JS数据，如`window.CONSUMPTION_JOURNAL_DATA = {...};`；JSON.stringify后把`<`替为`\u003c`。不得夹带Cookie/令牌或未清洗HTML，不把用户内容执行为脚本。
 - `story.json`：`overview:{text,source_ids}`、`themes:[{id,title,text,source_ids,image_paths,layout}]`。source_ids指真实父order_id；若主题具体到商品另加item_ids，可回查父订单。布局A/B/C不展示到UI；没有人物、角色或影视彩蛋字段。
 - 展示层增加 visuals 原图映射、claim_key、home 与 arrangement，见 [素材类型](media-selection.md) 和 [实现说明](implementation.md)。原始订单标题和图片不覆盖；派生图片只供排版，放大入口仍能核对原图。计划 month 可为合法年月或空字符串，空表示暂不排期。
+- 选入页面的每张图必须有visuals分类；没有映射不能静默降为source。全部确实无适合展示图片时，可写image_fallback_reason说明实际核对情况；不能用于跳过看图或隐藏普通商品图。下载响应须为真实本地图片，HTML/空文件不是saved；目录有图片但所有item.image_path为空时停止构建，先修复绑定。
 
 ## 离线与计划
 

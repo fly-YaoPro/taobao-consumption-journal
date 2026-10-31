@@ -73,7 +73,9 @@ python scripts/build_journal.py --source "项目数据目录" --output "手账�
 
 示例中的年份不是固定要求：按用户要求，未指定用执行年份下一年。`song` 沿用原规范；歌名、歌手、依据核对后再写。`url` 可选，仅用可信歌曲页面；不伪造播放按钮或音源。
 
-淘宝首页选有代表性的不同素材，通常3—5件即可，不按订单顺序取图。先按 [素材类型](media-selection.md) 填 `story.visuals`：object/photo/cover/design/service/source。未分类和未处理促销图默认显示来源摘要，不放大成照片；原始图留在日历和放大入口。可用 display_path 加 crop/cutout 指向同原图的派生素材，构建时一同复制，不能生成替换。
+淘宝首页选有代表性的不同素材，通常3—5件即可，不按订单顺序取图。先按 [素材类型](media-selection.md) 填 `story.visuals`：object/photo/cover/design/service/source。选图缺分类会停止构建；不能默认全设source。已确认的促销图降为来源摘要，不放大成照片；原始图留在日历和放大入口。可用 display_path 加 crop/cutout 指向同原图的派生素材，构建时一同复制，不能生成替换。
+
+图片必须完成订单路径绑定、展示映射和输出拷贝。构建器核对真实图像容器，不接受改名的HTML/空响应；有可展示图片时首页不能空图。确实全是服务/广告且没有可用图片，才用image_fallback_reason记录核对结论。构建产生media-report.json；没有这份检查和实际浏览器看图，不能仅按下载了多少文件报成功。
 
 `image_paths:[]` 明确表示该段用文字和来源呈现，不再自动补前三张图。`themes[].teaser` 写一句引子，`home:false` 可只留详情入口。同一发现给相同 `claim_key`；与阶段/跨年线索共用键的主题不重复出现在首页。阶段与跨年区共用 claim_key 或正文完全重复会被阻止；语义重复仍由 Agent 逐段检查。
 
