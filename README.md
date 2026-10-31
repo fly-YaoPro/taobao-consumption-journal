@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="assets/cover.svg" alt="淘宝消费手账 · Taobao Consumption Journal" width="100%">
-</p>
-
 <h1 align="center">淘宝消费手账</h1>
 <p align="center">从买过的东西，翻回生活的不同阶段。</p>
 <p align="center"><strong>Agent Skill</strong> · 真实订单 · 消费回看 · 本地离线</p>
@@ -11,6 +7,11 @@
   <a href="SKILL.md">查看 Skill</a> ·
   <a href="https://github.com/fly-YaoPro/taobao-consumption-journal/archive/refs/heads/main.zip">下载完整包</a>
 </p>
+
+<p align="center">
+  <img src="assets/showcase/home.jpg" alt="新版首页：大标题、商品相纸拼贴、短回顾与购物线索便笺；虚构数据演示" width="100%">
+</p>
+<p align="center"><sub>包内框架的实际渲染截图。人设、订单与日期为虚构演示，商品画面由 AI 生成；不是真实账号采集结果。正式制作使用订单对应的真实平台图片。<a href="assets/showcase/provenance.json">素材说明</a></sub></p>
 
 > 一套由 Agent 执行的完整流程：**采集成功订单与真实商品图 → 梳理生活阶段与物件故事 → 制作回看、订单日历和计划**。包含可运行的页面框架、本地字体、采集规则与检查工具，无需自己搭建网页。
 
@@ -26,7 +27,37 @@
 
 ## 拼贴手账的样子
 
-首页按一条完整的回看顺序展开：
+### 从几件东西，翻回一段日子
+
+首页先铺开物件与短回顾，再沿着购买重心的变化展开。大标题负责定调，相纸、便笺和颜色把内容串起来；正文不写成长报告。
+
+**阶段文件夹 · 一层一层翻过去**
+
+![阶段文件夹随滚动逐层叠起，每段保留代表物件、短叙事与侧边便笺；虚构演示](assets/showcase/folder-stack.jpg)
+
+一个文件夹装一段时期：代表商品放在主纸页，具体线索放在侧笺。桌面随滚动叠起，手机顺序展开；较高面板不强行叠层，避免挡住正文。
+
+### 回看之后，还能继续用
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <h4>订单日历 · 点开那一天</h4>
+      <a href="assets/showcase/calendar.jpg"><img src="assets/showcase/calendar.jpg" alt="紧凑月历、商品缩略图和所选日期详情；虚构演示" width="100%"></a>
+      <p>有记录的日期带商品缩略图，点开看当天订单；支持跨年搜索与品类筛选。</p>
+    </td>
+    <td width="50%" valign="top">
+      <h4>后续计划 · 先有建议，再自己改</h4>
+      <a href="assets/showcase/plans.jpg"><img src="assets/showcase/plans.jpg" alt="根据记录整理的三张计划便笺，带月份、依据与来源；虚构演示" width="100%"></a>
+      <p>Agent 先根据记录整理建议，不交付空计划页。每条保留依据，可修改、打卡并备份。</p>
+    </td>
+  </tr>
+</table>
+
+以上四张图来自同一套虚构演示数据，展示包内代码的实际版式。图片可点开看大图；真实采集、金额核对与账号权限仍需在使用时验证。
+
+<details>
+<summary>页面里还有什么</summary>
 
 1. **大标题与旧物拼贴**：真实商品相纸、短回顾、几条具体发现。
 2. **记得住的物件**：选几件有故事的东西，点开看单图、对照或来源小票。
@@ -35,6 +66,8 @@
 5. **配歌与下一步**：可选的歌曲推荐，以及从真实记录整理出的计划。
 
 始终保留 **回看 / 订单日历 / 计划** 三个入口。页面框架、字体、标题断句、叠层动效和手机重排已写入包内代码；Agent负责分析资料与填充内容。手机端按顺序展开阅读，较高面板不强行叠层。见[人生阶段拼贴框架](references/scrapbook-blueprint.md)。
+
+</details>
 
 <details>
 <summary>展开查看虚构视觉参考图（早期风格示意，非新版运行截图）</summary>
@@ -162,6 +195,7 @@ SKILL.md          Agent 入口
 agents/           可选的客户端展示信息
 references/       采集、金额口径、内容、视觉与验收规则
 assets/cases/     虚构视觉参考图
+assets/showcase/  新版框架实装截图（虚构数据演示）
 assets/starter/   可运行的离线拼贴页面框架
 assets/provenance.json  参考图说明与校验值
 scripts/          构建器、结构检查与合成数据测试
