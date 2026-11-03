@@ -9,13 +9,13 @@
 </p>
 
 <p align="center">
-  <img src="assets/showcase/home.jpg" alt="新版首页：大标题、商品相纸拼贴、短回顾与购物线索便笺；虚构数据演示" width="100%">
+  <img src="assets/showcase/preview-home.png" alt="纸页手账首页：墨蓝大标题、错落商品图、短回顾与具体发现；虚构数据演示" width="100%">
 </p>
 <p align="center"><sub>包内框架的实际渲染截图。人设、订单与日期为虚构演示，商品画面由 AI 生成；不是真实账号采集结果。正式制作使用订单对应的真实平台图片。<a href="assets/showcase/provenance.json">素材说明</a></sub></p>
 
 > 一套由 Agent 执行的完整流程：**采集成功订单与真实商品图 → 梳理生活阶段与物件故事 → 制作回看、订单日历和计划**。包含可运行的页面框架、本地字体、采集规则与检查工具，无需自己搭建网页。
 
-**当前 `main` 是图文叙事与分类素材版。** 保留人生阶段拼贴框架，新增按素材类型展示、首页叙事去重、暂不排期计划和商品拼贴分享图。从仓库首页安装时，未指定其他分支或标签，获取的是 `main` 当前版本。旧安装需主动更新；固定版本见[版本与回退](#版本与回退)。
+**当前 `main` 是纸页手账版（2026-11-03）。** 保留大标题、真实商品拼贴与生活回看，阶段改用可点击标签翻阅；同时加入有界分批采集、图片去重下载和私密订单筛选。从仓库首页安装时，未指定其他分支或标签，获取的是 `main` 当前版本。旧安装需主动更新；固定版本见[版本与回退](#版本与回退)。
 
 ## 不只是一张消费总额
 
@@ -31,11 +31,11 @@
 
 首页先铺开物件与短回顾，再沿有依据的购买变化展开。实物、照片、书影音封面、设计预览与服务订单分别处理；文字密集的卖货图留在原图入口，不放大套相纸。内容先挑不同发现，不按年份硬分阶段，不在主题、阶段与跨年区反复讲同一件事。
 
-**阶段文件夹 · 一层一层翻过去**
+**阶段纸页 · 点标签，翻一段日子**
 
-![阶段文件夹随滚动逐层叠起，每段保留代表物件、短叙事与侧边便笺；虚构演示](assets/showcase/folder-stack.jpg)
+![多标签纸质档案，每段保留代表物件、短叙事与侧边便笺；虚构演示](assets/showcase/preview-folder.png)
 
-一个文件夹装一段时期：代表商品放在主纸页，具体线索放在侧笺。桌面随滚动叠起，手机顺序展开；较高面板不强行叠层，避免挡住正文。
+一个标签对应一段时期：代表商品放在主纸页，具体线索放在侧笺。点击标签、前后按钮或方向键翻阅，纸页轻滑进入；内容高度随文字展开。奶油纸底、墨蓝文字和少量玉米黄点题，正文与短便签各用适合的字体。
 
 ### 回看之后，还能继续用
 
@@ -43,12 +43,12 @@
   <tr>
     <td width="50%" valign="top">
       <h4>订单日历 · 点开那一天</h4>
-      <a href="assets/showcase/calendar.jpg"><img src="assets/showcase/calendar.jpg" alt="紧凑月历、商品缩略图和所选日期详情；虚构演示" width="100%"></a>
+      <a href="assets/showcase/preview-calendar.png"><img src="assets/showcase/preview-calendar.png" alt="紧凑月历、商品缩略图和所选日期详情；虚构演示" width="100%"></a>
       <p>有记录的日期带商品缩略图，点开看当天订单；支持跨年搜索与品类筛选。</p>
     </td>
     <td width="50%" valign="top">
       <h4>后续计划 · 先有建议，再自己改</h4>
-      <a href="assets/showcase/plans.jpg"><img src="assets/showcase/plans.jpg" alt="根据记录整理的三张计划便笺，带月份、依据与来源；虚构演示" width="100%"></a>
+      <a href="assets/showcase/preview-plans.png"><img src="assets/showcase/preview-plans.png" alt="根据记录整理的计划便笺，带月份、依据与来源；虚构演示" width="100%"></a>
       <p>Agent 先根据具体发现提出建议，不交付空页，也不逐类目套整理任务。无日期依据可暂不排期，之后自行修改、打卡与备份。</p>
     </td>
   </tr>
@@ -56,7 +56,7 @@
 
 ### 分享图也保留物件
 
-<p align="center"><a href="assets/showcase/share.png"><img src="assets/showcase/share.png" alt="与主页面同风格的1080×1440商品拼贴分享图；虚构数据与AI示意商品" width="360"></a></p>
+<p align="center"><a href="assets/showcase/preview-share.png"><img src="assets/showcase/preview-share.png" alt="与主页面同风格的1080×1440商品拼贴分享图；虚构数据与AI示意商品" width="360"></a></p>
 
 大标题、商品拼贴、短注与少量发现，先预览再下载，不是纯文字报告。正式使用带对应真实商品图，图片嵌入离线资源，无需外链加载；账号、地址和订单号不放进画面。
 
@@ -67,11 +67,11 @@
 
 1. **大标题与旧物拼贴**：按类型处理的真实素材、短回顾、具体发现。
 2. **记得住的物件**：选几件有故事的东西，点开看单图、对照或来源小票。
-3. **人生阶段大文件夹**：有真实变化才分段，不按年份凑数；大面板随滚动叠起，主物、对照和条目采用不同图文比。
+3. **人生阶段纸质档案**：有真实变化才分段，不按年份凑数；点标签翻阅，主物、对照和条目采用不同图文比。
 4. **跨年线索**：看看持续了什么、变化了什么，有依据才展开。
 5. **配歌与下一步**：可选的歌曲推荐，以及从真实记录整理出的计划。
 
-始终保留 **回看 / 订单日历 / 计划** 三个入口。页面框架、字体、标题断句、叠层动效和手机重排已写入包内代码；Agent负责分析资料与填充内容。手机端按顺序展开阅读，较高面板不强行叠层。见[人生阶段拼贴框架](references/scrapbook-blueprint.md)。
+始终保留 **回看 / 订单日历 / 计划** 三个入口。页面框架、字体、标题断句、纸页切换和手机重排已写入包内代码；Agent负责分析资料与填充内容。见[人生阶段拼贴框架](references/scrapbook-blueprint.md)。
 
 </details>
 
@@ -155,6 +155,8 @@ https://github.com/fly-YaoPro/taobao-consumption-journal
 
 ## 工作方式
 
+采集支持首屏即存、正常列表有界批次、断点缓存和商品图去重并发下载。减少重复读页与逐单详情往返，不缩小日期范围、不少下图片，也不替换图文叙事和页面框架。参见[采集方式](references/collection-fast-path.md)。宿主不支持预制DOM适配器时，仍可通过正常浏览器逐页整理；没有真实账号复测，不承诺固定完成时间。
+
 ```text
 用户登录 / 提供导出 → 小样本核验 → 分批保存订单与图片
                                         ↓
@@ -174,12 +176,14 @@ https://github.com/fly-YaoPro/taobao-consumption-journal
 ## 版本与回退
 
 - [仓库首页 · main](https://github.com/fly-YaoPro/taobao-consumption-journal)：默认安装入口，随之后的提交更新。
+- [纸页手账版 · 2026-11-03](https://github.com/fly-YaoPro/taobao-consumption-journal/tree/codex/paper-keepsake-20261103)：本次发布的固定版本。
+- [本次更新前的完整旧版](https://github.com/fly-YaoPro/taobao-consumption-journal/tree/codex/before-paper-keepsake-20261103)：保留更新前的全部文件，可直接查看或下载。
 - [图文叙事与分类素材版 · editorial-media-20261031](https://github.com/fly-YaoPro/taobao-consumption-journal/tree/editorial-media-20261031)：此次更新的固定版本，含商品拼贴分享。
 - [本次更新前 · before-editorial-media-20261031](https://github.com/fly-YaoPro/taobao-consumption-journal/tree/before-editorial-media-20261031)：保留本次修改前的完整版本。
 - [上一代人生阶段框架 · life-stages-20261031](https://github.com/fly-YaoPro/taobao-consumption-journal/tree/life-stages-20261031)：早一代框架的固定版本。
 - [更新前备份 · before-life-stages-20261031](https://github.com/fly-YaoPro/taobao-consumption-journal/tree/before-life-stages-20261031)：保留旧版完整内容。
 
-标签保留对应版本的完整文件，可随时查看或下载。要将默认版本改回旧版时，用新的恢复提交保留两版历史，不删除仓库、不强制覆盖提交记录。
+版本分支与标签保留对应版本的完整文件，可随时查看或下载。要将默认版本改回旧版时，用新的恢复提交保留两版历史，不删除仓库、不强制覆盖提交记录。
 
 ## 本地检查
 
@@ -217,6 +221,8 @@ scripts/          构建器、结构检查与合成数据测试
 
 订单是私有资料，只处理用户授权的账号。不读取聊天、地址、手机号或收件人，不下单、不支付、不改订单；登录和验证码由用户处理，不绕过限制。
 
+默认将内衣、内裤、成人及私密健康商品排除在回顾、日历、搜索、分享图和可部署数据包之外，普通袜子不泛化排除。用户指定不展示的记录同样排除；原始资料仍留在本地，Agent负责重写受影响的叙事。自动规则辅助检查，仍需逐条、逐图复核。见[隐私筛选](references/privacy.md)。
+
 交付是可离线浏览的 HTML/CSS/普通 JS 文件夹。原订单外链仍需要网络和权限；本地计划需验证浏览器兼容性，并提供 JSON 备份。分享图按用户要求使用真实商品图片，不包含无关账号、地址或订单号，不自动公开上传。
 
 本公开仓库不含真实订单、Cookie、令牌或浏览器 profile。已做结构、链接、素材替换及离线合成数据检查，**不代表真实账号的端到端实测已通过**。
@@ -226,3 +232,5 @@ scripts/          构建器、结构检查与合成数据测试
 [作者：fly-YaoPro](https://github.com/fly-YaoPro) · [姊妹 Skill：微博人生手账](https://github.com/fly-YaoPro/weibo-life-archive)
 
 本仓库未附加代码开源许可证；复用与再分发授权请先联系作者。包内字体单独适用随附的OFL许可，复制网页时保留字体署名与许可。平台图片和用户数据不因本仓库公开而获得再分发授权。
+
+外部网站只用于一般设计研究，不作为逐项复刻对象。获取账号或图片访问权不等于有权公开再分发。具体执行见[设计与素材使用边界](references/design-rights.md)；规则调整不代表历史页面已通过设计相似性或法律审查。

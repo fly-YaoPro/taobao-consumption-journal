@@ -34,7 +34,7 @@
   function addSticker(leaf){const s=node('span','sticker');s.setAttribute('aria-hidden','true');s.innerHTML='<svg viewBox="0 0 40 40" fill="none"><path d="M20 3v6m0 22v6M3 20h6m22 0h6M8 8l5 5m14 14 5 5M8 32l5-5M27 13l5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="20" cy="20" r="7" stroke="currentColor" stroke-width="2"/></svg>';leaf.append(s);}
   function renderReview(){
     const host=$('#spread'),p=pages[page],im=assets(p);host.replaceChildren();
-    if(D.skin==='collage'&&window.JournalScrapbook){window.JournalScrapbook.render({host,p,page,pages,D,records,byId,photo,sources,song,button,node,assets,go:i=>{page=Math.max(0,Math.min(pages.length-1,i));renderReview();if(page===0)window.scrollTo({top:0,behavior:'instant'});else $('#spread').scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});},view:switchView});
+    if(D.skin==='collage'&&window.JournalScrapbook){window.JournalScrapbook.render({host,p,page,pages,D,records,byId,photo,sources,song,button,node,assets,plans,go:i=>{page=Math.max(0,Math.min(pages.length-1,i));renderReview();if(page===0)window.scrollTo({top:0,behavior:'instant'});else $('#spread').scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});},view:switchView});
     }else{
       const layout=page===0?'A':p.layout||'A',book=node('article',`book theme-${layout}`),left=node('div','leaf'),right=node('div','leaf editorial');
       right.append(node('p','ribbon',page===0?'回看 · '+D.meta.title:'片段 '+String(page).padStart(2,'0')),node('h1','',p.headline||p.title),node('p','muted',p.range||''),node('p','lead',p.text),sources(p.source_ids));addSticker(right);
@@ -68,7 +68,7 @@
   $('#search').oninput=()=>{searchPage=0;renderSearch();};
   const categories=[...new Set(records.map(r=>r.category).filter(Boolean))];if(D.meta.platform==='taobao'&&categories.length>1){$('#category-label').hidden=false;categories.sort().forEach(c=>$('#category').append(option(c,c)));}$('#category').onchange=()=>{searchPage=0;renderSearch();};
   $('#plan-month').append(option('unscheduled','暂不排期'));for(let m=1;m<=12;m++)$('#plan-month').append(option(m,m+'月'));$('#plan-month').onchange=renderPlans;
-  function persistPlans(){save(keyPlans,plans);renderPlans();}
+  function persistPlans(){save(keyPlans,plans);renderPlans();if(D.skin==='collage')renderReview();}
   function renderPlans(){
     const list=$('#plan-list');list.replaceChildren();const filter=$('#plan-month').value;
     plans.filter(p=>filter==='all'||(filter==='unscheduled'?!p.month:Number(p.month.slice(-2))===Number(filter)))
@@ -103,6 +103,10 @@
   }catch(err){notify('导出失败：'+err.message);}},'primary');box.append(b);showModal('导出一张可分享的回看',box);}
   async function exportShare(){
     if(D.skin!=='collage')return exportTextShare();
+    if(window.JournalEditorialShare){
+      const box=node('div'),status=node('p','share-status','正在排版这张物件刊页…');box.append(status);showModal('留一张回看',box);
+      try{const canvas=await window.JournalEditorialShare.createCanvas(D);status.textContent='图片与文字来自这份手账，可保存为一张长图。';const actions=node('div','form-actions');actions.append(button('下载分享图 PNG',async()=>{const blob=await new Promise(r=>canvas.toBlob(r,'image/png'));if(blob)download('消费手账_1080x1440.png',blob);else notify('图片生成失败，请重试。');},'primary'));box.append(canvas,actions);}catch(e){status.textContent='分享图暂未生成：'+e.message;}return;
+    }
     const box=node('div'),status=node('p','share-status','正在排版商品拼贴…');box.append(status);showModal('分享这一页',box);
     try{
       await document.fonts.ready;

@@ -7,7 +7,7 @@ import zlib
 
 def image_info(path):
     """Check raster container structure, not semantic provenance or full decoding."""
-    data = path.read_bytes()
+    data = bytes(path) if isinstance(path, (bytes, bytearray)) else path.read_bytes()
     width = height = 0
     fmt = ""
     if data.startswith(b"\x89PNG\r\n\x1a\n"):

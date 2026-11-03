@@ -1,4 +1,4 @@
-interface:
-  display_name: "淘宝消费手账"
-  short_description: "整理淘宝十年成功订单并生成有据可查的消费手账和订单日历与计划"
-  default_prompt: "使用 $taobao-consumption-journal，用真实订单与平台商品图片制作可离线回看的消费手账。"
+interface:
+  display_name: "淘宝消费手账"
+  short_description: "整理淘宝十年成功订单并生成有据可查的消费手账和订单日历与计划"
+  default_prompt: "使用 $taobao-consumption-journal，用真实订单与平台商品图片制作可离线回看的消费手账。"

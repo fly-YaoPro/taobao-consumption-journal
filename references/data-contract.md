@@ -17,14 +17,14 @@
   exports/
 ```
 
-采集阶段无需已有网页。cache/和progress.json可保存扫描状态，不放凭据。真实订单原入口为外链，需要网络与登录；本地图片、CSS和JS必须可离线读取。
+采集阶段无需已有网页。新版采集器使用collection-state.json、collection-cache/、browser-collection.json、collection-metrics.json，以及media-manifest.json、media-state.json和media-download-report.json；旧cache/和progress.json不擅自删除或迁移。它们是本地运行状态，不放凭据，不随成品发布。真实订单原入口为外链，需要网络与登录；本地图片、CSS和JS必须可离线读取。
 
 ## 数据约定
 
 - `project_meta.json`：`schema_version:1`、`platform:"taobao"`、`title`（用户标题，非空字符串，默认“消费手账”）、`mode:"full"`（若用户明确缩小/抽样可用selected）、`timezone:"Asia/Shanghai"`、`requested_range:{start,end}`（YYYY-MM-DD）。可加actual_range、plan_year、run_status、金额口径说明。full是目标，是否读齐由覆盖报告证明。
 - `coverage.json`：数组，每项year、status、scanned_count、saved_count、note；status为complete/partial/selected/unread/failed/empty。计数未知用null，确实完整读取且无订单才empty。
 - `orders.json`：父订单数组。每项`order_id`字符串、`placed_at`带时区ISO时间、`raw_status`、`is_success:true`、`currency`、`paid_amount`十进制字符串或null、`refund_amount`十进制字符串或null、`amount_basis`（original_paid/net_after_refund/unknown）、`url`原入口、`items`非空数组。
-- item字段：`item_id`字符串、`name`、`spec`或null、`quantity`正整数、`image_path`项目内路径或null、`image_status`（saved/failed/unavailable）。平台无行ID时用订单内稳定序号并注明来源，不伪造平台ID。
+- item字段：`item_id`字符串、`name`、`spec`或null、`quantity`正整数、`image_path`项目内路径或null、`image_status`（saved/failed/unavailable）。平台无行ID时用订单内稳定序号并注明来源，不伪造平台ID。采集器另记item_id_basis；日级日期另记date_precision=day，午夜仅是日期容器，不代表真实下单秒数。数量未知不默认1。图片有实际source_url时才记origin=platform；确实未取到图片及源URL时origin留空，不伪造图片来源。
 - 多商品父订单只计一次实付。paid_amount与refund_amount原值保留；计算净支出前核清amount_basis。unknown不算净额，net_after_refund不再扣退款，未知金额不填0。按币种汇总，不凭商品标价填订单实付。
 - `orders.js`：与JSON同源的普通JS数据，如`window.CONSUMPTION_JOURNAL_DATA = {...};`；JSON.stringify后把`<`替为`\u003c`。不得夹带Cookie/令牌或未清洗HTML，不把用户内容执行为脚本。
 - `story.json`：`overview:{text,source_ids}`、`themes:[{id,title,text,source_ids,image_paths,layout}]`。source_ids指真实父order_id；若主题具体到商品另加item_ids，可回查父订单。布局A/B/C不展示到UI；没有人物、角色或影视彩蛋字段。

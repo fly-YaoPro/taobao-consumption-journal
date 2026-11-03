@@ -9,6 +9,7 @@ import shutil
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from image_files import image_info
+from privacy_filter import prepare_private_projection
 
 
 def load(path):
@@ -37,8 +38,9 @@ def day(value):
     return dt.astimezone(timezone(timedelta(hours=8))).date().isoformat()
 
 
-def normalize(root, meta, kind):
-    source = load(root / ("records.json" if kind == "weibo" else "orders.json"))
+def normalize(root, meta, kind, source=None):
+    if source is None:
+        source = load(root / ("records.json" if kind == "weibo" else "orders.json"))
     rows = []
     for r in source:
         if kind == "weibo":
@@ -84,7 +86,11 @@ def prepare(root, skin):
     kind = meta["platform"]
     if kind not in {"weibo", "taobao"} or (kind == "taobao" and skin != "collage") or (kind == "weibo" and skin == "collage"):
         raise ValueError("微博使用 paper/frosted；淘宝使用 collage")
-    rows = normalize(root, meta, kind)
+    export_orders, privacy_report = None, None
+    if kind == "taobao":
+        meta, story, coverage, export_orders, privacy_report = prepare_private_projection(
+            root, meta, story, coverage, load(root / "orders.json"))
+    rows = normalize(root, meta, kind, export_orders)
     by_id = {r["id"]: r for r in rows}
     visual_map = story.get("visuals", {})
     if not isinstance(visual_map, dict):
@@ -222,7 +228,7 @@ def prepare(root, skin):
             raise ValueError("有已核对可展示的商品图片，但首页没有实际图片；补齐 overview.source_ids 与 image_paths，不能只在日历出现")
         if raw_images and not eligible and not str(story.get("image_fallback_reason") or "").strip():
             raise ValueError("全部商品图都被降成服务/来源卡；先复核分类，确实全无适合图片时写 image_fallback_reason，不能静默做成纯文字")
-        if not raw_images and any((root / folder).is_dir() and any(p.is_file() for p in (root / folder).rglob("*")) for folder in ("images", "downloads")):
+        if not raw_images and not (privacy_report and privacy_report["excluded_parent_orders"]) and any((root / folder).is_dir() and any(p.is_file() for p in (root / folder).rglob("*")) for folder in ("images", "downloads")):
             raise ValueError("目录里有图片文件但订单未绑定任何 image_path；先核对下载清单与商品行，不能交付无图页面")
         media_summary = {"downloaded_originals": len(raw_images), "classified_originals": len(visual_map),
                          "displayable_originals": len(eligible), "rendered_image_slots": len(visible),
@@ -239,9 +245,12 @@ def prepare(root, skin):
     if requested.get("start", actual["start"]) < actual["start"]:
         scope += " · 更早范围未完整收录"
     identity = str(meta.get("project_id") or meta.get("target", {}).get("uid") or rows[0]["id"])
+    if kind == "taobao":
+        identity += ":privacy-v1:" + meta["privacy_storage_scope"]
     project_key = hashlib.sha256((kind + ":" + identity).encode()).hexdigest()[:16]
     return {"version": 2, "project_key": project_key, "skin": skin, "meta": meta, "story": story,
-            "coverage": coverage, "records": rows, "scope": scope, "media_summary": media_summary}
+            "coverage": coverage, "records": rows, "scope": scope, "media_summary": media_summary,
+            "_export_orders": export_orders, "privacy_report": privacy_report}
 
 
 def build(source, output, skin, template=None):
@@ -251,9 +260,10 @@ def build(source, output, skin, template=None):
     if output.exists() and any(output.iterdir()):
         raise ValueError("输出目录不为空；选新目录，保留旧网页与手动计划")
     data = prepare(source, skin)  # validate before writing anything
+    export_orders = data.pop("_export_orders")
     template = Path(template) if template else Path(__file__).resolve().parents[1] / "assets" / "starter"
     output.mkdir(parents=True, exist_ok=True)
-    for filename in ("index.html", "styles.css", "app.js", "core.js", "scrapbook.css", "scrapbook.js"):
+    for filename in ("index.html", "styles.css", "app.js", "core.js", "scrapbook.css", "scrapbook.js", "share-editorial.js"):
         shutil.copyfile(template / filename, output / filename)
     # Only template-owned fonts and their notices. Never copy source caches or profiles.
     font_dir = template / "fonts"
@@ -283,19 +293,27 @@ def build(source, output, skin, template=None):
     (output / "journal-data.js").write_text(js, encoding="utf-8")
     if data["media_summary"] is not None:
         (output / "media-report.json").write_text(json.dumps(data["media_summary"], ensure_ascii=False, indent=2), encoding="utf-8")
+    if data["privacy_report"] is not None:
+        (output / "privacy-report.json").write_text(json.dumps(data["privacy_report"], ensure_ascii=False, indent=2), encoding="utf-8")
     paths = {im[k] for r in data["records"] for im in r["images"] for k in ("path", "large")}
     paths.update(v["display_path"] for v in data["story"].get("visuals", {}).values() if v.get("display_path"))
     for name in paths:
         target = output / name
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(local_file(source, name), target)
-    # Keep normalized raw data, but never copy browser state/cache/credentials from an old project.
-    for filename in ("project_meta.json", "coverage.json", "story.json", "records.json" if data["meta"]["platform"] == "weibo" else "orders.json"):
-        shutil.copyfile(source / filename, output / filename)
+    # Taobao has a separate display/export boundary. Raw data remains ONLY in
+    # the source directory: hidden rows in an HTML UI are not anonymisation.
+    if data["meta"]["platform"] == "taobao":
+        for filename, value in (("project_meta.json", data["meta"]), ("coverage.json", data["coverage"]),
+                                ("story.json", data["story"]), ("orders.json", export_orders)):
+            (output / filename).write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")
+    else:
+        for filename in ("project_meta.json", "coverage.json", "story.json", "records.json"):
+            shutil.copyfile(source / filename, output / filename)
     bundle = "data.js" if data["meta"]["platform"] == "weibo" else "orders.js"
     global_name = "LIFE_ARCHIVE_DATA" if data["meta"]["platform"] == "weibo" else "CONSUMPTION_JOURNAL_DATA"
     raw_key = "records" if data["meta"]["platform"] == "weibo" else "orders"
-    canonical = {"meta": data["meta"], "coverage": data["coverage"], "story": data["story"], raw_key: load(source / (raw_key + ".json"))}
+    canonical = {"meta": data["meta"], "coverage": data["coverage"], "story": data["story"], raw_key: export_orders if export_orders is not None else load(source / (raw_key + ".json"))}
     canonical_js = f"window.{global_name} = " + json.dumps(canonical, ensure_ascii=False).replace("<", "\\u003c") + ";\n"
     (output / bundle).write_text(canonical_js, encoding="utf-8")
     (output / "exports").mkdir(exist_ok=True)

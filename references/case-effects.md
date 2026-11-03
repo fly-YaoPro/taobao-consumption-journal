@@ -1,12 +1,12 @@
 # 参考图使用规则
 
-三张图片均为AI生成的虚构UI示意。消费者“林果”、订单、物件与日期均为演示，不是真实用户记录或已运行截图。生成说明见 [素材说明](../assets/provenance.json)。
+`assets/showcase/preview-*.png` 是当前纸页框架用虚构数据实际渲染的截图。`assets/cases/` 中三张旧图是AI生成的虚构UI示意。两类图片的人设、订单、物件与日期都是演示，不是真实账号记录。说明见 [当前框架截图](../assets/showcase/provenance.json) 和 [早期示意素材](../assets/provenance.json)。
 
 ## 必须先读图，再制作
 
-新版本以 [动态拼贴固定框架](scrapbook-blueprint.md) 和可运行代码为首要页面基准。下列旧图辅助理解配色、纸层、商品组合，不把旧三列构图强加到每一页；首页与文件夹动效以代码框架为准。
+新版本以 [纸页框架](scrapbook-blueprint.md) 和可运行代码为首要页面基准。先实际打开 [首页](../assets/showcase/preview-home.png)、[阶段档案](../assets/showcase/preview-folder.png) 和 [日历](../assets/showcase/preview-calendar.png)，再看 [计划](../assets/showcase/preview-plans.png)、[分享](../assets/showcase/preview-share.png) 的排版。下列旧图只辅助理解纸层、商品组合，不把旧三列构图强加到每一页；首页与纸页动效以当前代码为准。
 
-开始设计时，用宿主的图片查看/视觉能力实际打开以下三图，路径以Skill目录为根。仅列文件名或阅读本说明不算看图；不能读图时说明限制，不声称已参考，也不让用户额外上传包内图片。
+开始设计时，用宿主的图片查看/视觉能力实际打开上述当前截图，路径以Skill目录为根。仅列文件名或阅读本说明不算看图；不能读图时说明限制，不声称已参考，也不让用户额外上传包内图片。需要更多构图参考时再看以下旧图：
 
 - [桌面总览](../assets/cases/collage-overview.png)：观察粗黑短句、左总结纸条/中商品组合/右发现便签、纸层与留白。
 - [物件主题](../assets/cases/collage-holiday.png)：观察大小不同的商品错落、白描边与短日期标签；文件名为兼容已有引用保留，实际演示是厨房主题，不要求制作节日页。

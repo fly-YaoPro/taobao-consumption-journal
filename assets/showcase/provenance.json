@@ -1,7 +1,7 @@
 {
   "type": "rendered-ui-showcase-with-synthetic-data",
-  "created_date": "2026-10-31",
-  "ui": "Actual browser screenshots and an actual canvas PNG export of the bundled editorial-media-v5 framework; not AI-generated interface mockups.",
+  "created_date": "2026-11-03",
+  "ui": "Actual browser screenshots and a downloaded canvas PNG export of the bundled paper-keepsake framework, rendered with synthetic data. Not AI-generated interface mockups.",
   "synthetic_data": true,
   "data_description": "Fictional shopping preferences and 17 invented orders spanning 2016–2026, authored solely for README illustration. Synthetic service/source cards demonstrate non-photographic media. No actual account, order export, purchase amount or private photograph is used.",
   "product_images": {
@@ -17,12 +17,37 @@
     ]
   },
   "runtime_rule": "Real journal projects must use images from the actual order, the verified matching product page/specification, or authorized photographs of that same product. Never substitute generated or similar products for order evidence.",
-  "capture_note": "Homepage and folder-stack images are viewport captures; calendar and plans are full-page captures; share.png is a downloaded 1080x1440 canvas export. No image is a claim of successful real-account collection or of an end-to-end Doubao run.",
+  "capture_note": "Current preview-*.png captures are from the verified local paper-keepsake preview. The older JPGs and share.png remain as historical design resources and are not current UI screenshots. No capture demonstrates real-account collection or a complete live-platform test.",
   "images": [
-    {"path": "home.jpg", "role": "Mixed-media homepage collage and short recap", "sha256": "4e31df3624ef1d91a9c8e643544baaabf7b95b73f7315b55932f0f785db162a0"},
-    {"path": "folder-stack.jpg", "role": "Life-stage folders overlapping during scroll", "sha256": "be87d5feef818f8e79f761a7c0342da2f5feca1b37a7bf978557580def3869ac"},
-    {"path": "calendar.jpg", "role": "Compact populated calendar with selected-day details", "sha256": "65095932311b6888a978f2c781356f6aa06fe47c1f5d311f673610f71032422e"},
-    {"path": "plans.jpg", "role": "Source-linked, unscheduled suggested plans", "sha256": "4066c0beeab7b2426f21b6e48a1b2d8e46a250da24b07b7c0635b2e4363c86f1"},
-    {"path": "share.png", "role": "Actual image-rich 1080x1440 canvas export using fictional props", "sha256": "ece1ce8f4c5908b6f029683066a3b67ea22a45276e75c227c4a4a00e2b9efaaf"}
+    {
+      "path": "preview-home.png",
+      "role": "Homepage with title, photos and short narrative",
+      "sha256": "342dce4f18e75bfcfa738e90eb4e1659c1095b1485931e6300178f6fe4b74c54"
+    },
+    {
+      "path": "preview-folder.png",
+      "role": "Interactive tabbed stage archive",
+      "sha256": "632a76a063f9a7c9f0acab52c31ce6a704f84b98e1c620748a825e838a7e1cbe"
+    },
+    {
+      "path": "preview-calendar.png",
+      "role": "Compact calendar and selected-day details",
+      "sha256": "6176949888bacdcadacf9547576b9baf91d368418d08b730c36814d5f6c784ef"
+    },
+    {
+      "path": "preview-plans.png",
+      "role": "Source-linked editable plan seeds",
+      "sha256": "9fcc87e30fb87765701b170343f2d910914bd76ce586e15d913cd952dead65c6"
+    },
+    {
+      "path": "preview-share.png",
+      "role": "Actual downloaded 1080x1440 canvas export",
+      "sha256": "40fa066e931c8b580b37ebb4b7fbfca20354dde8aeff9fa3a8ac4f7e20aaa3a1"
+    },
+    {
+      "path": "preview-mobile.png",
+      "role": "390px mobile layout",
+      "sha256": "a1c7a83b6be4224217cbb700953ee8269be593ccad11d8841d39121130b067af"
+    }
   ]
 }
