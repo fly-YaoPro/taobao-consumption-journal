@@ -15,7 +15,7 @@
 
 > 一套由 Agent 执行的完整流程：**采集成功订单与真实商品图 → 梳理生活阶段与物件故事 → 制作回看、订单日历和计划**。包含可运行的页面框架、本地字体、采集规则与检查工具，无需自己搭建网页。
 
-**当前 `main` 是纸页手账版（2026-11-03）。** 保留大标题、真实商品拼贴与生活回看，阶段改用可点击标签翻阅；同时加入有界分批采集、图片去重下载和私密订单筛选。从仓库首页安装时，未指定其他分支或标签，获取的是 `main` 当前版本。旧安装需主动更新；固定版本见[版本与回退](#版本与回退)。
+**当前 `main` 是纸页手账版（2026-11-04 修复版）。** 保留大标题、真实商品拼贴与生活回看，阶段改用可点击标签翻阅；包含有界分批采集、图片去重下载和私密订单筛选。本次仅修复空图标占位导致的终稿验收失败，加入真实模板构建、浏览器导出 PNG 到终稿检查的集成回归；不放宽安全检查，不改版式或采集口径。从仓库首页安装时，未指定其他分支或标签，获取的是 `main` 当前版本。旧安装需主动更新；固定版本见[版本与回退](#版本与回退)。
 
 ## 不只是一张消费总额
 
@@ -176,8 +176,10 @@ https://github.com/fly-YaoPro/taobao-consumption-journal
 ## 版本与回退
 
 - [仓库首页 · main](https://github.com/fly-YaoPro/taobao-consumption-journal)：默认安装入口，随之后的提交更新。
-- [纸页手账版 · 2026-11-03](https://github.com/fly-YaoPro/taobao-consumption-journal/tree/codex/paper-keepsake-20261103)：本次发布的固定版本。
-- [本次更新前的完整旧版](https://github.com/fly-YaoPro/taobao-consumption-journal/tree/codex/before-paper-keepsake-20261103)：保留更新前的全部文件，可直接查看或下载。
+- [终稿验收修复版 · 2026-11-04](https://github.com/fly-YaoPro/taobao-consumption-journal/tree/starter-final-check-20261104)：本次修复的固定标签，包含真实模板集成回归。
+- [本次修复前的完整旧版](https://github.com/fly-YaoPro/taobao-consumption-journal/tree/codex/before-starter-final-check-20261104)：保留修复前全部文件。
+- [纸页手账版 · 2026-11-03](https://github.com/fly-YaoPro/taobao-consumption-journal/tree/codex/paper-keepsake-20261103)：上一版完整框架。
+- [纸页改版前的完整旧版](https://github.com/fly-YaoPro/taobao-consumption-journal/tree/codex/before-paper-keepsake-20261103)：更早一代备份，可直接查看或下载。
 - [图文叙事与分类素材版 · editorial-media-20261031](https://github.com/fly-YaoPro/taobao-consumption-journal/tree/editorial-media-20261031)：此次更新的固定版本，含商品拼贴分享。
 - [本次更新前 · before-editorial-media-20261031](https://github.com/fly-YaoPro/taobao-consumption-journal/tree/before-editorial-media-20261031)：保留本次修改前的完整版本。
 - [上一代人生阶段框架 · life-stages-20261031](https://github.com/fly-YaoPro/taobao-consumption-journal/tree/life-stages-20261031)：早一代框架的固定版本。
@@ -198,9 +200,15 @@ python scripts/check_project.py "项目目录" --kind taobao --stage final
 
 # 合成数据回归测试
 python -B scripts/test_check_project.py
+
+# 模板集成回归：真实 starter 构建 → 离线页面下载 PNG → final 检查
+# 需要测试环境安装 Playwright（npm install --no-save playwright），不影响成品零依赖。
+node scripts/test_starter_integration.cjs --browser "本机Chrome路径" --artifacts "新的测试产物目录"
 ```
 
 检查器会检查父订单 ID、金额格式、数量、状态、时间、图片路径和页面结构，但不能证明平台金额相符、真实图片无误或交互可用。仍要实测离线打开、搜索、日历、计划保存与导入恢复、PNG 下载，未测项必须说明。见 [验收清单](references/acceptance.md)。
+
+集成测试保留 `integration-receipt.json`、截图与实际下载的 1080×1440 PNG，同时验证空 data 图标、外部脚本和缺失资源继续被拒绝。使用合成无图夹具，不把此回归当作真实账号采集或商品图片验收。
 
 ## 仓库结构
 

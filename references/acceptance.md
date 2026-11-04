@@ -38,4 +38,18 @@
 
 先运行本地结构检查，再记录浏览器实测结果。未测试明确说明，不把计划当结果，不自动对外发送或公开部署。
 
+### 模板集成回归（维护 Skill 时）
+
+修改模板、构建器或导出功能后，使用包内真实 `assets/starter/` 构建，在离线浏览器中点击分享并下载 PNG 到生成目录的 `exports/`，再执行 `--stage final`；必须同时得到 `ok: true` 和退出码 `0`。不要改生成后的 HTML 掩盖模板问题，也不要为了过验收放宽资源检查器。
+
+可运行已提供的集成测试（仅合成订单，不访问淘宝或真实账号）：
+
+```bash
+# 测试依赖：Node.js、Python、Playwright，以及本机 Chromium/Chrome
+# 首次按当前环境安装 Playwright；它不是成品网页的运行依赖。
+node scripts/test_starter_integration.cjs --browser "本机Chrome可执行文件路径" --artifacts "新的测试产物目录"
+```
+
+已有 Playwright 可通过 `JOURNAL_PLAYWRIGHT` 指定模块位置；Python不在默认路径时用 `JOURNAL_PYTHON`。不提供 `--browser` 时使用 Playwright 已安装的 Chromium。测试保留页面截图、真实下载的 PNG 和 `integration-receipt.json`，并验证空 data 图标、外部脚本和缺失资源仍被拒绝。合成夹具没有真实商品图，仅证明模板—导出—检查链路；真实项目的图片、金额和视觉核对仍按上文执行。
+
 本地成品交付末尾按[部署规则](deployment.md)询问是否上线，默认推荐/可预选上线，必须等用户明确确认。豆包使用实际可用的妙搭，其他宿主列真实可用选项。带订单和真实图片的资料先核对上传与可见范围，发布后在真正线上URL再验收资源。
