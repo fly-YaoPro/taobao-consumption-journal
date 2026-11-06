@@ -1,4 +1,4 @@
-<h1 align="center">淘宝消费手账</h1>
+<h1 align="center">电商消费手帐</h1>
 <p align="center">从买过的东西，翻回生活的不同阶段。</p>
 <p align="center"><strong>Agent Skill</strong> · 真实订单 · 消费回看 · 本地离线</p>
 <p align="center">
@@ -15,7 +15,9 @@
 
 > 一套由 Agent 执行的完整流程：**采集成功订单与真实商品图 → 梳理生活阶段与物件故事 → 制作回看、订单日历和计划**。包含可运行的页面框架、本地字体、采集规则与检查工具，无需自己搭建网页。
 
-**当前 `main` 是纸页手账版（2026-11-04 修复版）。** 保留大标题、真实商品拼贴与生活回看，阶段改用可点击标签翻阅；包含有界分批采集、图片去重下载和私密订单筛选。本次仅修复空图标占位导致的终稿验收失败，加入真实模板构建、浏览器导出 PNG 到终稿检查的集成回归；不放宽安全检查，不改版式或采集口径。从仓库首页安装时，未指定其他分支或标签，获取的是 `main` 当前版本。旧安装需主动更新；固定版本见[版本与回退](#版本与回退)。
+**本版使用通用名称「电商消费手帐」，保留纸页手账框架与完整制作流程。** 入口先识别订单平台，目前仅支持淘宝；京东、拼多多、抖音电商、亚马逊等其他平台会直接返回“该平台暂不支持”，已有这些平台的导出也不例外。本轮仅调整 Skill 名称、简介和平台路由说明，不更换采集代码、版式、商品图规则或隐私筛选，也保留真实模板构建、浏览器导出 PNG 与终稿检查的回归。从仓库首页安装且未指定版本时，获取的是 `main` 当前版本；旧安装需主动更新，固定历史版本见[版本与回退](#版本与回退)。
+
+仓库地址继续沿用 `taobao-consumption-journal`，安装后的 Skill 名称与文件夹统一为 `ecommerce-consumption-journal`。多平台识别仅用于正确接受或拒绝任务，不等于多平台采集已经实现。
 
 ## 不只是一张消费总额
 
@@ -100,19 +102,19 @@
 请从这个仓库的 main 分支安装最新版本：
 https://github.com/fly-YaoPro/taobao-consumption-journal
 
-按照当前客户端的 Skill 安装规范操作，完整保留 SKILL.md、
+按当前客户端的 Skill 安装规范，将 Skill 文件夹命名为 ecommerce-consumption-journal，完整保留 SKILL.md、
 references、assets 和 scripts。安装后核对提交版本，
 不要在安装过程中读取订单或生成手账。
 ```
 
-也可以[下载 main 完整包](https://github.com/fly-YaoPro/taobao-consumption-journal/archive/refs/heads/main.zip)，将完整文件夹放入客户端规定的 Skill 目录。不同客户端的安装与加载入口可能不同；不要只复制 `SKILL.md`，页面、字体和脚本也需要保留。
+也可以[下载 main 完整包](https://github.com/fly-YaoPro/taobao-consumption-journal/archive/refs/heads/main.zip)，解压后将包含 `SKILL.md` 的完整文件夹重命名为 `ecommerce-consumption-journal`，再放入客户端规定的 Skill 目录。不同客户端的安装与加载入口可能不同；不要只复制 `SKILL.md`，页面、字体和脚本也需要保留。
 
 Agent需要文件读写、代码执行和本地读图能力；在线采集还需要浏览器操作能力。也支持用户提供的合法订单导出与真实商品图片。
 
 ### 安装后开始使用
 
 ```text
-使用淘宝消费手账 Skill，帮我回看近十年的淘宝成功订单。
+使用 $ecommerce-consumption-journal（电商消费手帐），帮我回看近十年的淘宝成功订单。
 我来登录，你先核验能读取的日期范围和几笔订单。
 沿时间梳理购买重心和生活变化，穿插记得住的物件与兴趣，
 用 Skill 自带的人生阶段拼贴框架制作。商品图必须真实对应订单。
@@ -126,9 +128,12 @@ Agent需要文件读写、代码执行和本地读图能力；在线采集还需
 已安装的 Skill 不保证自动更新，可以直接这样要求：
 
 ```text
-将已安装的 taobao-consumption-journal 更新到这个仓库 main 分支的最新版本：
+将已安装的电商消费手帐更新到这个仓库 main 分支的最新版本：
 https://github.com/fly-YaoPro/taobao-consumption-journal
 
+新 Skill 名称和文件夹是 ecommerce-consumption-journal。
+如果旧安装名为 taobao-consumption-journal，先识别旧安装位置，迁移到新名称，避免重复安装两份；
+不要把用户数据目录当作 Skill 安装目录覆盖。
 更新 Skill 代码和配套资源，核对提交版本。
 保留我的订单、图片、已生成网页和手动计划，不自动重新采集或重做产物。
 ```
@@ -158,11 +163,13 @@ https://github.com/fly-YaoPro/taobao-consumption-journal
 采集支持首屏即存、正常列表有界批次、断点缓存和商品图去重并发下载。减少重复读页与逐单详情往返，不缩小日期范围、不少下图片，也不替换图文叙事和页面框架。参见[采集方式](references/collection-fast-path.md)。宿主不支持预制DOM适配器时，仍可通过正常浏览器逐页整理；没有真实账号复测，不承诺固定完成时间。
 
 ```text
-用户登录 / 提供导出 → 小样本核验 → 分批保存订单与图片
+识别平台 → 淘宝：用户登录 / 提供导出 → 小样本核验 → 分批保存订单与图片
                                         ↓
                           金额与来源核对 → 消费回看
                                         ↓
                            看参考图 → 静态网页 → 实测交付
+
+其他平台 → “该平台暂不支持”，结束，不调用采集或构建
 ```
 
 时间范围与标题可自定，未指定时默认回溯十年。成本明显超出预期时先让用户选范围，不擅自抽样；中断有进度，后续可以补采。计划年份按任务确定，不绑定活动年份。
@@ -176,6 +183,8 @@ https://github.com/fly-YaoPro/taobao-consumption-journal
 ## 版本与回退
 
 - [仓库首页 · main](https://github.com/fly-YaoPro/taobao-consumption-journal)：默认安装入口，随之后的提交更新。
+- [通用名称与平台路由版 · 2026-11-06](https://github.com/fly-YaoPro/taobao-consumption-journal/tree/generic-routing-20261106)：本次更新的固定版本。
+- [更名前的完整旧版 · 2026-11-06](https://github.com/fly-YaoPro/taobao-consumption-journal/tree/backup-pre-generic-routing-20261106)：保留原名称、完整流程与全部资源，可随时取回。
 - [终稿验收修复版 · 2026-11-04](https://github.com/fly-YaoPro/taobao-consumption-journal/tree/starter-final-check-20261104)：本次修复的固定标签，包含真实模板集成回归。
 - [本次修复前的完整旧版](https://github.com/fly-YaoPro/taobao-consumption-journal/tree/codex/before-starter-final-check-20261104)：保留修复前全部文件。
 - [纸页手账版 · 2026-11-03](https://github.com/fly-YaoPro/taobao-consumption-journal/tree/codex/paper-keepsake-20261103)：上一版完整框架。
@@ -237,7 +246,7 @@ scripts/          构建器、结构检查与合成数据测试
 
 ---
 
-[作者：fly-YaoPro](https://github.com/fly-YaoPro) · [姊妹 Skill：微博人生手账](https://github.com/fly-YaoPro/weibo-life-archive)
+[作者：fly-YaoPro](https://github.com/fly-YaoPro) · [姊妹 Skill：社媒人生手帐](https://github.com/fly-YaoPro/weibo-life-archive)
 
 本仓库未附加代码开源许可证；复用与再分发授权请先联系作者。包内字体单独适用随附的OFL许可，复制网页时保留字体署名与许可。平台图片和用户数据不因本仓库公开而获得再分发授权。
 
