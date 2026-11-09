@@ -9,14 +9,16 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from urllib.parse import urlsplit
 from image_files import image_info
+from ecommerce_platforms import ECOMMERCE_PLATFORMS, validate_order_platforms, validate_product_url
 
-TITLES={'weibo':'人生手账','taobao':'消费手账'}
+TITLES={'weibo':'人生手账','taobao':'消费手账','jd':'消费手账'}
 STATUSES={'complete','partial','selected','unread','failed','empty'}
 FORBIDDEN_KEYS={'cookie','cookies','access_token','refresh_token','password','authorization','storage_state'}
 
 def check(root,kind,stage='data'):
     root=Path(root).resolve(); errors=[]; warnings=[]
     def err(msg):errors.append(msg)
+    if kind not in TITLES:err('unsupported project kind')
     def load(name):
         path=root/name
         try:return json.loads(path.read_text(encoding='utf-8-sig'))
@@ -88,6 +90,9 @@ def check(root,kind,stage='data'):
         if c.get('status')=='empty' and c.get('saved_count')!=0:err(field+': empty must have confirmed zero saved_count')
     if not coverage:warnings.append('No per-year coverage has been recorded')
     if not isinstance(records,list):err('data JSON: expected array');records=[]
+    if kind in ECOMMERCE_PLATFORMS:
+        try:validate_order_platforms(records,kind)
+        except ValueError as exc:err(str(exc))
     seen=set();image_count=0;unknown_amounts=0
     def timestamp(value,field):
         try:
@@ -127,9 +132,12 @@ def check(root,kind,stage='data'):
                 image_count+=1
         else:
             if r.get('is_success') is not True:err(field+': non-success order in included data')
-            if any(s in str(r.get('raw_status','')) for s in ('交易关闭','已取消','待付款','未付款')):err(field+': raw status contradicts included success')
+            if kind=='jd' and r.get('raw_status')!='已完成':err(field+': JD included status must be exactly 已完成')
+            if any(s in str(r.get('raw_status','')) for s in ('交易关闭','已取消','待付款','未付款','等待付款','已关闭','订单取消')):err(field+': raw status contradicts included success')
             text(r.get('raw_status'),field+'.raw_status');text(r.get('currency'),field+'.currency')
             amount(r.get('paid_amount'),field+'.paid_amount');amount(r.get('refund_amount'),field+'.refund_amount')
+            if 'observed_amount' in r:amount(r.get('observed_amount'),field+'.observed_amount')
+            if r.get('parent_order_id') is not None:text(r['parent_order_id'],field+'.parent_order_id')
             if r.get('paid_amount') is None:unknown_amounts+=1
             if r.get('amount_basis') not in ('original_paid','net_after_refund','unknown'):err(field+': unknown amount_basis')
             items=r.get('items')
@@ -137,6 +145,8 @@ def check(root,kind,stage='data'):
             item_ids=set()
             for j,item in enumerate(items):
                 if not isinstance(item,dict):err(field+'.items: expected objects');continue
+                try:validate_product_url(item.get('product_url'),kind)
+                except ValueError as exc:err(field+'.items: '+str(exc))
                 if item.get('image_path') is not None or item.get('origin') is not None:
                     evidence_image(item,field+f'.items[{j}]')
                 iid=item.get('item_id')
@@ -154,7 +164,7 @@ def check(root,kind,stage='data'):
     if stage=='final':
         story=load('story.json');private_keys(story,'story')
         if not isinstance(story,dict):err('story.json: expected object');story={}
-        if kind=='taobao':
+        if kind in ECOMMERCE_PLATFORMS:
             try:
                 from build_journal import prepare
                 prepare(root,'collage')

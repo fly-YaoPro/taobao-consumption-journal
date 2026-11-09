@@ -15,9 +15,9 @@
 
 > 一套由 Agent 执行的完整流程：**采集成功订单与真实商品图 → 梳理生活阶段与物件故事 → 制作回看、订单日历和计划**。包含可运行的页面框架、本地字体、采集规则与检查工具，无需自己搭建网页。
 
-**本版使用通用名称「电商消费手帐」，保留纸页手账框架与完整制作流程。** 入口先识别订单平台，目前仅支持淘宝；京东、拼多多、抖音电商、亚马逊等其他平台会直接返回“该平台暂不支持”，已有这些平台的导出也不例外。本轮仅调整 Skill 名称、简介和平台路由说明，不更换采集代码、版式、商品图规则或隐私筛选，也保留真实模板构建、浏览器导出 PNG 与终稿检查的回归。从仓库首页安装且未指定版本时，获取的是 `main` 当前版本；旧安装需主动更新，固定历史版本见[版本与回退](#版本与回退)。
+**本版新增京东分支，保留纸页手账框架与完整制作流程。** 入口先识别淘宝或京东，分别采集或导入用户授权的成功订单，再使用同一套真实图、消费回看、日历和可编辑计划。单个项目只处理一个平台，不把淘宝与京东合并；拼多多、抖音电商、亚马逊等其他平台仍直接返回“该平台暂不支持”，已有这些平台的导出也不例外。从仓库首页安装且未指定版本时，获取的是 `main` 当前版本；旧安装需主动更新，固定历史版本见[版本与回退](#版本与回退)。
 
-仓库地址继续沿用 `taobao-consumption-journal`，安装后的 Skill 名称与文件夹统一为 `ecommerce-consumption-journal`。多平台识别仅用于正确接受或拒绝任务，不等于多平台采集已经实现。
+仓库地址继续沿用 `taobao-consumption-journal`，安装后的 Skill 名称与文件夹统一为 `ecommerce-consumption-journal`。可识别多平台，不代表支持所有平台；京东的年份筛选、懒加载、成功状态和拆单逻辑使用独立适配器，不把淘宝规则直接套过去。见[京东采集说明](references/jd-collection.md)。
 
 ## 不只是一张消费总额
 
@@ -121,6 +121,15 @@ Agent需要文件读写、代码执行和本地读图能力；在线采集还需
 要能按日历翻订单、搜索旧记录，并先生成几条我能自己改的计划。
 ```
 
+京东可以直接这样说：
+
+```text
+使用 $ecommerce-consumption-journal，帮我回看近十年的京东已完成订单。
+我来登录，先核验能读取的年份、几笔订单和商品图片。
+用 Skill 原有的纸页框架，做消费回看、订单日历和可以修改的后续计划。
+没核实的实付金额保持未知，读不到的年份如实说明，不用抽样冒充完整。
+```
+
 已有数据时可以直接说“不要重采，用这些订单和图片制作”。只要改页面时，应保留原始订单、来源与手动计划。见[调用示例](references/usage.md)。
 
 ### 更新已安装的旧版
@@ -147,10 +156,12 @@ https://github.com/fly-YaoPro/taobao-consumption-journal
 | 一单多件商品 | 分别保存商品，总实付只在父订单层计一次。 |
 | 退款与净支出 | 保留原金额标签，不把已经扣过退款的净额再扣一次。 |
 | 读不到金额 | 保持未知，不用零代替，不拿商品标价充当实付。 |
+| 京东列表只有无明确实付标签的价格 | 留作观察值，不直接算实付或净支出；需要精确金额时再正常查详情。 |
+| 京东拆单 | 各子订单卡片分别保存，父拆单总额不复制到每一条；父关系未知就保留未知。 |
 | 只读到部分年份 | 明示实际覆盖，不用最近几十单外推十年。 |
 | 商品推断经历 | 买护具不等于身体异常，买旅行用品不等于真的出行。 |
 
-默认只纳入交易成功订单，排除未付款、取消和交易关闭。不同币种不直接相加，未知的商品级金额不随意均摊。
+淘宝纳入交易成功，京东当前只纳入精确“已完成”，“等待收货”不算成功；排除未付款、取消和关闭。不同币种不直接相加，未知的商品级金额不随意均摊。
 
 ## 两条制作规则
 
@@ -163,16 +174,19 @@ https://github.com/fly-YaoPro/taobao-consumption-journal
 采集支持首屏即存、正常列表有界批次、断点缓存和商品图去重并发下载。减少重复读页与逐单详情往返，不缩小日期范围、不少下图片，也不替换图文叙事和页面框架。参见[采集方式](references/collection-fast-path.md)。宿主不支持预制DOM适配器时，仍可通过正常浏览器逐页整理；没有真实账号复测，不承诺固定完成时间。
 
 ```text
-识别平台 → 淘宝：用户登录 / 提供导出 → 小样本核验 → 分批保存订单与图片
+识别平台 → 淘宝或京东：用户登录 / 提供导出 → 小样本核验 → 分批保存订单与图片
                                         ↓
                           金额与来源核对 → 消费回看
                                         ↓
                            看参考图 → 静态网页 → 实测交付
 
 其他平台 → “该平台暂不支持”，结束，不调用采集或构建
+混合平台 → 先由用户选本次平台，分别建项目，不静默合并
 ```
 
 时间范围与标题可自定，未指定时默认回溯十年。成本明显超出预期时先让用户选范围，不擅自抽样；中断有进度，后续可以补采。计划年份按任务确定，不绑定活动年份。
+
+京东默认页面可能只显示近3个月，应按实际年份入口逐窗读取，不把一个窗口的最后一页当十年完成。2026-11-09已做正常页面小样本、年份切换、翻页、商品图懒加载和两张图的本地下载验证；**未跑完真实账号近十年全量及端到端产物**。离线合成集成测试通过也不替代真实账号验收。
 
 ## 页面框架
 
@@ -183,7 +197,7 @@ https://github.com/fly-YaoPro/taobao-consumption-journal
 ## 版本与回退
 
 - [仓库首页 · main](https://github.com/fly-YaoPro/taobao-consumption-journal)：默认安装入口，随之后的提交更新。
-- [通用名称与平台路由版 · 2026-11-06](https://github.com/fly-YaoPro/taobao-consumption-journal/tree/generic-routing-20261106)：本次更新的固定版本。
+- [通用名称与平台路由版 · 2026-11-06](https://github.com/fly-YaoPro/taobao-consumption-journal/tree/generic-routing-20261106)：此前仅支持淘宝的固定版本。
 - [更名前的完整旧版 · 2026-11-06](https://github.com/fly-YaoPro/taobao-consumption-journal/tree/backup-pre-generic-routing-20261106)：保留原名称、完整流程与全部资源，可随时取回。
 - [终稿验收修复版 · 2026-11-04](https://github.com/fly-YaoPro/taobao-consumption-journal/tree/starter-final-check-20261104)：本次修复的固定标签，包含真实模板集成回归。
 - [本次修复前的完整旧版](https://github.com/fly-YaoPro/taobao-consumption-journal/tree/codex/before-starter-final-check-20261104)：保留修复前全部文件。
@@ -207,17 +221,23 @@ https://github.com/fly-YaoPro/taobao-consumption-journal
 python scripts/check_project.py "项目目录" --kind taobao --stage data
 python scripts/check_project.py "项目目录" --kind taobao --stage final
 
+# 京东项目使用自己的kind，其他图片、隐私和final安全门禁不变
+python scripts/check_project.py "京东项目目录" --kind jd --stage data
+python scripts/check_project.py "京东项目目录" --kind jd --stage final
+
 # 合成数据回归测试
 python -B scripts/test_check_project.py
+python -B -m unittest discover -s scripts -p "test_*.py"
 
 # 模板集成回归：真实 starter 构建 → 离线页面下载 PNG → final 检查
 # 需要测试环境安装 Playwright（npm install --no-save playwright），不影响成品零依赖。
 node scripts/test_starter_integration.cjs --browser "本机Chrome路径" --artifacts "新的测试产物目录"
+node scripts/test_starter_integration.cjs --kind jd --browser "本机Chrome路径" --artifacts "新的京东测试产物目录"
 ```
 
 检查器会检查父订单 ID、金额格式、数量、状态、时间、图片路径和页面结构，但不能证明平台金额相符、真实图片无误或交互可用。仍要实测离线打开、搜索、日历、计划保存与导入恢复、PNG 下载，未测项必须说明。见 [验收清单](references/acceptance.md)。
 
-集成测试保留 `integration-receipt.json`、截图与实际下载的 1080×1440 PNG，同时验证空 data 图标、外部脚本和缺失资源继续被拒绝。使用合成无图夹具，不把此回归当作真实账号采集或商品图片验收。
+集成测试保留 `integration-receipt.json`、截图与实际下载的 1080×1440 PNG，同时验证空 data 图标、外部脚本和缺失资源继续被拒绝。默认淘宝夹具无商品图，京东夹具包含有效的合成本地图，并检查日历、跨年品类筛选、自动计划及修改保存；不把此回归当作真实账号采集或商品图片验收。
 
 ## 仓库结构
 

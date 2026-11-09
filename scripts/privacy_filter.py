@@ -1,4 +1,4 @@
-"""Conservative, local-only Taobao display/export boundary. Not a classifier guarantee."""
+"""Conservative, local-only ecommerce display/export boundary. Not a classifier guarantee."""
 import copy
 import hashlib
 import json
@@ -7,6 +7,7 @@ import unicodedata
 from collections import Counter
 from datetime import date
 from pathlib import PurePosixPath
+from ecommerce_platforms import ecommerce_platform, validate_order_platforms, validate_product_url
 
 
 # Match product fields, never the entire export blob. Do not match broad fragments
@@ -23,10 +24,11 @@ ENGLISH_PRIVATE = re.compile(
     r"(?<![a-z])(?:underwear|lingerie|bras?|panties|underpants|boxer\s+briefs|"
     r"condoms?|vibrators?|sex\s+toys?|adult\s+toys?|pregnancy\s+tests?|"
     r"ovulation\s+tests?|vaginal|menstrual\s+cups?|tampons?)(?![a-z])", re.I)
-ORDER_KEYS = {"order_id", "placed_at", "raw_status", "is_success", "currency", "paid_amount",
-              "refund_amount", "amount_basis", "url", "category", "display_title", "date_precision"}
+ORDER_KEYS = {"platform", "order_id", "placed_at", "raw_status", "is_success", "currency", "paid_amount",
+              "refund_amount", "amount_basis", "url", "category", "display_title", "date_precision",
+              "observed_amount", "observed_amount_label", "parent_order_id", "split_relation_uncertain", "amount_note"}
 ITEM_KEYS = {"item_id", "item_id_basis", "name", "spec", "quantity", "image_path", "image_status",
-             "origin", "source_url"}
+             "origin", "source_url", "product_url"}
 STORY_KEYS = {"overview", "themes", "findings", "stages", "threads", "milestones", "plans",
               "song", "visuals", "image_fallback_reason"}
 SECTION_KEYS = {"id", "headline", "title", "title_lines", "text", "note", "tags", "source_ids",
@@ -111,7 +113,7 @@ def safe_metadata(meta):
         title = meta["title"]
         if not isinstance(title, str) or not title.strip() or len(title) > 100:
             raise ValueError()
-        safe = {"schema_version": 1, "platform": "taobao", "title": title, "mode": meta["mode"],
+        safe = {"schema_version": 1, "platform": ecommerce_platform(meta.get("platform")), "title": title, "mode": meta["mode"],
                 "timezone": "Asia/Shanghai", "requested_range": {"start": begin.isoformat(), "end": end.isoformat()}}
         if meta.get("plan_year") is not None:
             safe["plan_year"] = int(meta["plan_year"])
@@ -130,6 +132,12 @@ def prepare_private_projection(root, meta, story, coverage, orders):
     A mixed parent order is withheld whole: retaining its amount/date/title could
     reveal the excluded item, and a narrative citing it cannot be auto-repaired.
     """
+    validate_order_platforms(orders, meta.get("platform"))
+    for order in orders:
+        if meta.get('platform') == 'jd' and order.get('is_success') is True and order.get('raw_status') != '已完成':
+            raise ValueError('JD included status must be exactly 已完成; verify imported records before export')
+        for item in order.get('items', []):
+            validate_product_url(item.get('product_url'), meta.get('platform'))
     policy_path = root / "privacy.json"
     policy = json.loads(policy_path.read_text(encoding="utf-8-sig")) if policy_path.exists() else {}
     if not isinstance(policy, dict):

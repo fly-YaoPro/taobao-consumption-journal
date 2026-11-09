@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from image_files import image_info
 from privacy_filter import prepare_private_projection
+from ecommerce_platforms import ECOMMERCE_PLATFORMS
 
 
 def load(path):
@@ -84,10 +85,10 @@ def normalize(root, meta, kind, source=None):
 def prepare(root, skin):
     meta, story, coverage = (load(root / p) for p in ("project_meta.json", "story.json", "coverage.json"))
     kind = meta["platform"]
-    if kind not in {"weibo", "taobao"} or (kind == "taobao" and skin != "collage") or (kind == "weibo" and skin == "collage"):
-        raise ValueError("微博使用 paper/frosted；淘宝使用 collage")
+    if kind not in {"weibo", *ECOMMERCE_PLATFORMS} or (kind in ECOMMERCE_PLATFORMS and skin != "collage") or (kind == "weibo" and skin == "collage"):
+        raise ValueError("微博使用 paper/frosted；电商（淘宝/京东）使用 collage")
     export_orders, privacy_report = None, None
-    if kind == "taobao":
+    if kind in ECOMMERCE_PLATFORMS:
         meta, story, coverage, export_orders, privacy_report = prepare_private_projection(
             root, meta, story, coverage, load(root / "orders.json"))
     rows = normalize(root, meta, kind, export_orders)
@@ -136,8 +137,8 @@ def prepare(root, skin):
             raise ValueError("摘句不在关联原文中，不可伪造原话")
     for f in story.get("findings", []):
         refs(f)
-    if kind == "taobao" and not story.get("findings"):
-        raise ValueError("淘宝总览需要有来源的发现，不能只放空便签")
+    if kind in ECOMMERCE_PLATFORMS and not story.get("findings"):
+        raise ValueError("电商总览需要有来源的发现，不能只放空便签")
     for m in story.get("milestones", []):
         refs(m)
     # Life chapters and cross-year threads are authored by the agent, never inferred
@@ -173,7 +174,7 @@ def prepare(root, skin):
             for note in section.get("notes", []):
                 if not note.get("title") or not note.get("text") or len(note["text"]) > 100 or not set(refs(note)).issubset(ids):
                     raise ValueError("阶段便笺需短文字及该阶段内的来源")
-    if kind == "taobao":
+    if kind in ECOMMERCE_PLATFORMS:
         bodies = {}
         for section in themes + stages + threads:
             body = re.sub(r"\s+", "", section["text"])
@@ -213,13 +214,13 @@ def prepare(root, skin):
                 raise ValueError("页面图片与来源ID不对应: " + str(path))
             r, im = allowed[path]
             visual = visual_map.get(path, {})
-            if kind == "taobao" and not visual:
+            if kind in ECOMMERCE_PLATFORMS and not visual:
                 raise ValueError("图片已下载但未完成页面展示映射：" + path + "；先读图填写 story.visuals，不能默认隐藏为来源卡")
             caption = section.get("image_captions", {}).get(path) or visual.get("title") or im["caption"] or r["title"]
             section["images"].append({**im, "path": visual.get("display_path") or path,
-                                      "large": im["large"], "kind": visual.get("kind", "source" if kind == "taobao" else "photo"),
+                                      "large": im["large"], "kind": visual.get("kind", "source" if kind in ECOMMERCE_PLATFORMS else "photo"),
                                       "date": r["date"], "record_id": r["id"], "caption": caption})
-    if kind == "taobao":
+    if kind in ECOMMERCE_PLATFORMS:
         sections = [overview] + themes + stages + threads
         visible_kinds = {"object", "photo", "cover", "design"}
         eligible = {path for path, visual in visual_map.items() if visual["kind"] in visible_kinds}
@@ -245,7 +246,7 @@ def prepare(root, skin):
     if requested.get("start", actual["start"]) < actual["start"]:
         scope += " · 更早范围未完整收录"
     identity = str(meta.get("project_id") or meta.get("target", {}).get("uid") or rows[0]["id"])
-    if kind == "taobao":
+    if kind in ECOMMERCE_PLATFORMS:
         identity += ":privacy-v1:" + meta["privacy_storage_scope"]
     project_key = hashlib.sha256((kind + ":" + identity).encode()).hexdigest()[:16]
     return {"version": 2, "project_key": project_key, "skin": skin, "meta": meta, "story": story,
@@ -301,9 +302,9 @@ def build(source, output, skin, template=None):
         target = output / name
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(local_file(source, name), target)
-    # Taobao has a separate display/export boundary. Raw data remains ONLY in
+    # Ecommerce has a separate display/export boundary. Raw data remains ONLY in
     # the source directory: hidden rows in an HTML UI are not anonymisation.
-    if data["meta"]["platform"] == "taobao":
+    if data["meta"]["platform"] in ECOMMERCE_PLATFORMS:
         for filename, value in (("project_meta.json", data["meta"]), ("coverage.json", data["coverage"]),
                                 ("story.json", data["story"]), ("orders.json", export_orders)):
             (output / filename).write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")

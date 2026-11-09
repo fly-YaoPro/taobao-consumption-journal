@@ -19,6 +19,8 @@ function option(name) {
   return args[i + 1];
 }
 const specified = option('--artifacts');
+const kind = option('--kind') || 'taobao';
+assert(['taobao', 'jd'].includes(kind), '--kind must be taobao or jd');
 const root = specified ? path.resolve(specified) : fs.mkdtempSync(path.join(os.tmpdir(), 'journal-starter-'));
 if (specified) {
   assert(!fs.existsSync(root) || fs.readdirSync(root).length === 0, 'Use a new/empty artifacts directory');
@@ -37,7 +39,7 @@ function py(args) {
   return result;
 }
 function finalCheck() {
-  const result = py(['scripts/check_project.py', output, '--kind', 'taobao', '--stage', 'final']);
+  const result = py(['scripts/check_project.py', output, '--kind', kind, '--stage', 'final']);
   return { exit_code: result.status, ...JSON.parse(result.stdout) };
 }
 function rejected(report, fragment) {
@@ -48,9 +50,14 @@ function rejected(report, fragment) {
 
 (async () => {
   let server;
-  const receipt = { synthetic_only: true, starter: 'assets/starter', offline: true };
+  const receipt = { synthetic_only: true, kind, starter: 'assets/starter', offline: true };
   try {
-    const fixture = py(['-c', `
+    const fixture = py(['-c', kind === 'jd' ? `
+import sys
+sys.path.insert(0, 'scripts')
+from test_jd_engine import jd_fixture
+jd_fixture(sys.argv[1])
+` : `
 import sys
 from pathlib import Path
 sys.path.insert(0, 'scripts')
@@ -91,6 +98,34 @@ put(root, 'story.json', {
     await page.goto(pathToFileURL(htmlPath).href);
     await page.locator('#spread').waitFor({ state: 'visible' });
     await page.evaluate(() => document.fonts.ready);
+    if (kind === 'jd') {
+      assert.equal(await page.evaluate(() => window.JOURNAL_DATA.meta.platform), 'jd');
+      assert.equal(await page.evaluate(() => window.JOURNAL_DATA.share_images.length), 1);
+      await page.waitForFunction(() => [...document.querySelectorAll('#spread img')].some(im => im.complete && im.naturalWidth > 0));
+      await page.locator('[data-view="calendar"]:visible').first().click();
+      assert.equal(await page.locator('#year').inputValue(), '2026');
+      assert.equal(await page.locator('#month').inputValue(), '08');
+      await page.locator('#days button[data-populated="true"]').click();
+      assert.equal(await page.locator('#day-detail .record-card').count(), 1);
+      assert.equal(await page.locator('#category-label').isVisible(), true);
+      await page.locator('#category').selectOption('居家');
+      assert.equal(await page.locator('#search-results .record-card').count(), 1);
+      assert((await page.locator('#search-results').innerText()).includes('2025-05-19'), 'Category search must include older years');
+      await page.screenshot({ path: path.join(root, 'calendar-category.png'), fullPage: true });
+      await page.locator('[data-view="plans"]:visible').first().click();
+      assert.equal(await page.locator('#plan-list .plan-card').count(), 1, 'Auto-authored plan must be present');
+      await page.locator('#plan-list').getByRole('button', { name: '编辑', exact: true }).click();
+      await page.getByLabel('要做什么', { exact: true }).fill('合成测试：手动修改保留');
+      await page.getByRole('button', { name: '保存', exact: true }).click();
+      await page.reload();
+      assert((await page.locator('#plan-list').innerText()).includes('合成测试：手动修改保留'), 'JD manual plan must survive reload');
+      await page.locator('#plan-list').getByRole('button', { name: '标记完成', exact: true }).click();
+      assert.equal(await page.locator('#plan-list .plan-card[data-done="true"]').count(), 1);
+      await page.screenshot({ path: path.join(root, 'plans.png'), fullPage: true });
+      await page.locator('[data-view="review"]:visible').first().click();
+      receipt.jd_functional_checks = { real_local_fixture_image_loaded: true, default_populated_month: true,
+        category_search_across_years: true, generated_plan: true, manual_plan_survives_reload: true, checkoff: true };
+    }
     await page.locator('#share-button').click();
     const canvas = page.locator('#modal canvas');
     await canvas.waitFor({ state: 'visible' });
